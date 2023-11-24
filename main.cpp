@@ -218,3 +218,9 @@ int main() {
 // o map considera os char em ordem na tabela ascii, portanto as aspas simples vem primeiro
 // do que todas as maiusculas, em ordem alfabetica, e essas vem antes de todas as minusculas,
 // em ordem alfabetica
+
+// to do kalil - construir a gui para as recomendações que já estão feitas
+// to do kalil - minimizar a trie para virar um fst
+// to do kalil - comparar com outro metodo - arvore binaria ou hashtable (tem que ver na planilha do bizarro quais ainda estao disponiveis)
+// to do kalil - implementar o automato de levenshtein
+
