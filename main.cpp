@@ -1,218 +1,327 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <string>
-#include <utility>      // std::pair
+#include <utility> // std::pair
 #include <string>
 #include <fstream>
+#include <set>
 
 
-class Node {
+class Node
+{
 public:
-    int id;
+    // int id;
     // O mapa agora associa um par de char e int (peso da transição) a um Node*.
-    std::map<char, std::pair<Node*, int>> transitions; // Agora usando std::map
+    std::map<char, std::pair<Node *, std::string>> transitions; // Agora usando std::map - esse char é o transition outuput, ou só "output"
     bool is_final;
-    std::string output;
+    std::set<std::string> stateOutput; // isso aqui é o node output, ou "state output" - somente diferente de '' se isfinal for true
 
-    Node(int id, bool isFinal = false, std::string output = "") {
-        this->id = id;        // Correto: atribui o parâmetro id ao membro da classe id.
+    Node(bool isFinal = false, std::set<std::string> stateOutput = {})
+    {
+        // this->id = id;            // Correto: atribui o parâmetro id ao membro da classe id.
         this->is_final = isFinal; // Correto: atribui o parâmetro isFinal ao membro da classe is_final.
-        this->output = output;
+        this->stateOutput = stateOutput;
     }
 
-    void changeIsFinal(bool isFinal) {
+    // Define um novo valor para isFinal do Node
+    bool final()
+    {
+        return this->is_final;
+    }
+    
+    void set_final(bool isFinal)
+    {
         this->is_final = isFinal;
     }
 
-    void addTransition(char letter, Node* next, int weight) {
-        transitions[letter] = std::make_pair(next, weight);
+    // Dado um char, retorna o targetState definido pela transição
+    Node *transition(char inputChar)
+    {
+        auto it = this->transitions.find(inputChar);
+        if (it != this->transitions.end())
+        {
+            // Retorna o estado de destino se a transição for encontrada.
+            return it->second.first;
+        }
+        else
+        {
+            // Retorna nullptr se não houver transição para o caractere de entrada.
+            return nullptr;
+        }
     }
 
-    // void printTransitions(){
-    //     for (const auto& transition : this->transitions) {
-    //         char transitionChar = transition.first;
-    //         Node* targetNode = transition.second.first;
-    //         int weight = transition.second.second;
-    //         std::cout << "Transition from: "<< this->id << " to " << targetNode->id << " -> char: "<< transitionChar << " with weight " << weight << " final? " << targetNode->is_final << std::endl;
+    // Dado um char e um state, define uma transição
+    void set_transition(char inputChar, Node *targetState, std::string transitionOutput = "")
+    {
+        this->transitions[inputChar] = std::make_pair(targetState, transitionOutput);
+    }
+
+    std::set<std::string> state_output(){
+        return this->stateOutput;
+    }
+
+    void set_state_output(std::set<std::string> stateOutput){
+        this->stateOutput = stateOutput;
+    }
+
+    //  return the output string for a transitionChar
+    std::string output(char transitionChar){
+        return this->transitions[transitionChar].second;
+    }
+
+    void set_output(char transitionChar, std::string transitionOutput){
+        this->transitions[transitionChar].second = transitionOutput;
+    }
+
+    // void print_transducer(std::string fileName, std::string output = ""){
+    //     std::ofstream arquivo(fileName, std::ios::app);
+    //     if (arquivo.is_open()) {
+    //         for (const auto &transition : this->transitions)
+    //         {
+    //             char transitionChar = transition.first;
+    //             Node *targetNode = transition.second.first;
+    //             // adiciona o char da próxima transição
+    //             output = output + transitionChar;
+    //             arquivo << "--------------------------------------------------------" << std::endl;
+    //             arquivo << "Transition from " << this->id << "(" << (this->is_final ? "final" : "not final") << ")"
+    //                     << " to " << targetNode->id << "(" << (targetNode->is_final ? "final" : "not final") << ")" << std::endl;
+    //             arquivo << "Transition char: " << transitionChar << std::endl;
+    //             arquivo << "Output até então: " << output << std::endl;
+    //             arquivo << "--------------------------------------------------------" << std::endl;
+    //             targetNode->print_transducer(fileName, output);
+    //             if (!output.empty())
+    //             {
+    //                 // Remove o char da ultima transição
+    //                 output = std::string(output.begin(), output.end() - 1);
+    //             }
+    //         }
+    //         if (this->is_final == true)
+    //         {
+    //             arquivo << "Final state: " << this->id << "(" << this->is_final << ")" << std::endl;
+    //             arquivo << "OUTPUT FINAL: " << output << std::endl;
+    //         }
+    //         arquivo << "Texto de exemplo." << std::endl;
+    //         arquivo.close();
+    //     } else {
+    //         std::cerr << "Não foi possível abrir o arquivo." << std::endl;
     //     }
     // }
 
-    void printFST(std::string output = ""){
-        for (const auto& transition : this->transitions) {
-            char transitionChar = transition.first;
-            Node* targetNode = transition.second.first;
-            int weight = transition.second.second;
-            output = output + transitionChar;
-            std::cout << "--------------------------------------------------------" << std::endl;
-            std::cout << "Transition from " << this->id << "(" << (this->is_final ? "final" : "not final") << ")" << " to " << targetNode->id << "(" << (targetNode->is_final ? "final" : "not final") << ")" << std::endl;
-            std::cout << "Transition char: "<< transitionChar << " with weight " << weight << std::endl;
-            std::cout << "Output até então: "<< output << std::endl;
-            std::cout << "--------------------------------------------------------" << std::endl;
-            targetNode->printFST(output);
-            if (!output.empty()) {
-                // Cria uma nova string sem a última letra
-                output = std::string(output.begin(), output.end() - 1);
-            }
-        }
-        if(this->is_final == true){
-            std::cout << "Final state: " << this->id <<"("<<this->is_final<<")" << std::endl;
-            std::cout << "OUTPUT FINAL: "<< output << std::endl;
-
-        }
+    Node* copy_state(){
+        Node* newNode = new Node(this->is_final, this->stateOutput);
+        newNode->transitions = this->transitions;
+        return newNode;
     }
 
-    void getRecommendationsFromState(std::string output = ""){
-        if(this->is_final == true && this->transitions.empty()) {
-            // std::cout << "vai entrar no estado de id 2: " << this->id << std::endl;
-            // std::cout << "Final state: " << this->id <<"("<<this->is_final<<")" << std::endl;
-            
-            // std::cout <<"Vai printar o aa:" << std::endl; // print o output final no estado terminal
-            std::cout << output << std::endl; // print o output final no estado terminal
-            if (!output.empty()) {
-                // Cria uma nova string sem a última letra
-                // output.pop_back(); // se for terminal = final + sem transicao -> remove o char da ultima transicao
-                // std::cout <<"O output virou a de novo:" << output << std::endl; // print o output final no estado terminal
-            }
-            return;
-        }
-        if(this->is_final == true) {
-            // std::cout << "Final state: " << this->id <<"("<<this->is_final<<")" << std::endl;
+    // Limpa as transições do nó e define isFinal como false
+    void clear_state()
+    {
+        this->transitions.clear();
+        this->set_final(false);
+        this->stateOutput = {};
+    }
 
-            // std::cout << "Vai printar o a:" << std::endl;
-            std::cout << output << std::endl;
+    bool compare_states(Node* anotherState){
+        if(this->final() != anotherState->final() || this->state_output() != anotherState->state_output() || this->transitions != anotherState->transitions){
+            return false;
         }
-        for (const auto& transition : this->transitions) {
-            // pega as informações da transicação
-            char transitionChar = transition.first;
-            Node* targetNode = transition.second.first;
-            int weight = transition.second.second;
-
-            output = output + transitionChar; // coloca o char da transicao no output
-
-            targetNode->getRecommendationsFromState(output);
-            output.pop_back();
-        }
+        return true;
     }
 };
 
-class FST {
+class FST
+{
 private:
-    Node* start_state;
-    std::vector<Node*> states;
+    Node *start_state;
+    std::unordered_map<Node *, int> states; // hash function to find states
 
 public:
-    FST() : start_state(new Node(0, true)) {
-        states.push_back(start_state);
+    FST() : start_state(nullptr) // start_state é inicializado como nullptr
+    {
+        // Não adicionar nenhum estado em 'states', deixando-o vazio
     }
 
-    ~FST() {
-        for (Node* state : states) {
-            delete state;
+    ~FST()
+    {
+        for (auto &state : states)
+        {
+            delete state.first;
         }
     }
+
+    Node* member(Node *refNode) {
+        auto it = states.find(refNode);
+        if (it != states.end()) {
+            // Retorna a chave que é o ponteiro para o Node
+            return refNode;
+        }
+        return nullptr;
+    }
+
     // Adiciona um novo nó ao FST, mas ainda não conecta ele com outros nós
-    Node* addState(bool isFinal = false, std::string output = "") {
-        Node* newState = new Node(states.size(), isFinal, output);
-        states.push_back(newState);
-        return newState;
-    }
-    // cria a transição do estado inicial do FST ao novo nó declarado
-    void addStartTransition(char letter, Node* target, int weight) {
-        start_state->addTransition(letter, target, weight);
-    }
-
-    Node* getStartState() const {
-        return this->start_state;
-    }
-// na verdade, esse cara só precisa verificar a ultima transição adicionada, pois as palavras são adicionadas em ordem alfabetica
-    void insertNewWord(std::string word){
-        this->start_state->is_final = false;
-        Node* currentNode = this->start_state;
-        bool found = true;
-        int transicao = 0;
-        while(found && !currentNode->transitions.empty()){
-            found = false;
-            auto lastTransition = currentNode->transitions.rbegin(); // Obtém um iterador reverso para o último elemento
-            char transitionChar = lastTransition->first;
-            Node* targetNode = lastTransition->second.first;
-            int weight = lastTransition->second.second;
-            if(transitionChar == word[transicao]){
-                currentNode = targetNode;
-                transicao ++;
-                found = true;
-            }
+    void insert(Node* newNode)
+    {
+        if(start_state == nullptr){
+            start_state = newNode;
+            // Corrigindo a inserção para usar std::pair
+            this->states.insert({start_state, states.size()});
         }
-        // chegou no node que não possui a transição que dá continuação à palavra que queremos inserir
-        if(transicao < word.length()){
-            Node* newNode;
-            // insere até a penultima letra sendo estados nao finais
-            for(; transicao < word.length() - 1; transicao++) {
-                newNode = this->addState(false);
-                currentNode->addTransition(word[transicao], newNode, this->states.size() - 1);
-                currentNode = newNode;
-            }
-            // insere a ultima letra sendo um estado final
-            newNode = this->addState(true);
-            currentNode->addTransition(word[transicao], newNode, this->states.size() - 1);
-            currentNode = newNode;
+        else{
+            // Corrigindo a inserção para usar std::pair
+            this->states.insert({newNode, states.size()});
         }
-    }
-
-    void autoCompleteRecommendations(std::string typedWord){
-        std::cout << "RECOMENDAÇÕES: " << std::endl;
-        Node* currentNode = this->start_state;
-        for(char c : typedWord){
-            bool found = false;
-            for (const auto& transition : currentNode->transitions) {
-                char transitionChar = transition.first;
-                if(transitionChar == c) {
-                    Node* targetNode = transition.second.first;
-                    // std::cout << "Encontrou a transicao referente à letra " << transitionChar <<  std::endl;
-                    currentNode = targetNode;
-                    // std::cout << "O novo currentNode é " << currentNode->id << std::endl;
-                    found = true;
-                    break;
-                }
-            }
-            if(!found){
-                std::cout << "Não há recomendações para esse input" << std::endl;
-                return;
-            }
-        }
-        std::cout << "ESTÁ ENVIANDO O RECOMMENDEDSTATE FROM COM O STATE DE ID: " << currentNode->id << std::endl;
-        currentNode->getRecommendationsFromState(typedWord);
     }
 
 };
 
-int main() {
-    FST myFST;
+const char FIRST_CHAR = 'a';
+const char LAST_CHAR = 'z';
+FST MinimalTransducerStatesDitionary;
+int MAX_WORD_SIZE;
 
-    Node* startState = myFST.getStartState();
+Node* findMinimized(Node* s){
+    Node* r = MinimalTransducerStatesDitionary.member(s);
+    if(r == nullptr){
+        r = s->copy_state();
+        MinimalTransducerStatesDitionary.insert(r);
+        return r;
+    }
+    return s;
+}
 
-    std::ifstream file("someWords.txt"); // Substitua "seuarquivo.txt" pelo caminho do seu arquivo
+std::pair<std::vector<std::string>, size_t> getInput() {
+    std::ifstream file("1word.txt"); // Substitua "input.txt" pelo caminho do seu arquivo
     std::vector<std::string> words;
     std::string word;
+    size_t maxLength = 0;
 
-    if (file.is_open()) {
-        while (getline(file, word)) {
-            words.push_back(word);
+    if (!file.is_open()) {
+        std::cout << "Não foi possível abrir o arquivo." << std::endl;
+        // Aqui você pode optar por retornar um par vazio ou lançar uma exceção
+        return std::make_pair(std::vector<std::string>(), 0);
+    }
+
+    while (file >> word) {
+        words.push_back(word);
+        if (word.length() > maxLength) {
+            maxLength = word.length();
         }
-        file.close();
-    } else {
-        std::cerr << "Não foi possível abrir o arquivo." << std::endl;
     }
 
-    for (const auto& w : words) {
-        myFST.insertNewWord(w);
+    file.close();
+
+    return std::make_pair(words, maxLength); // Correção aqui
+}
+
+std::string eraseSubString(std::string stringReference, std::string subString){
+    std::string result = stringReference;
+    // Encontra a posição inicial de subString.
+    size_t start_pos = result.find(subString);
+    // Se subString for encontrada, apaga-a.
+    if (start_pos != std::string::npos) {
+        result.erase(start_pos, subString.length());
     }
+    // Se subString não for encontrada, retorna a string original.
+    return result;
+}
 
-    myFST.autoCompleteRecommendations("A");
 
-    startState->printFST();
+int main()
+{
+    int i, j, k, prefixLengthPlusOne;
+    char c;
+    std::string PreviousWord, CurrentWord, CommonPrefix, currentOutput, WordSuffix, tempString;
+    std::set<std::string> tempSet;
+    Node* initialState;
+
+    std::pair<std::vector<std::string>, size_t> result = getInput();
+    std::vector<std::string> words = result.first;
+    MAX_WORD_SIZE = result.second;
+    std::vector<Node*> TempStates(MAX_WORD_SIZE+1);
+    // std::cout << "MAX_WORD_SIZE: " << MAX_WORD_SIZE << std::endl;
+
+    // for(i=0; i<20; i++){
+    //     std::cout << "words[" << i << "]: " << words[i] << std::endl;
+    // } 
+
+    for(i = 0; i<=MAX_WORD_SIZE; i++){
+        TempStates[i] = new Node();
+        std::cout << i << std::endl;
+    }
     
-    return 0;
+    PreviousWord = "";
+    currentOutput = "";
+    TempStates[0]->clear_state();
+
+    std::cout << "MAX_WORD_SIZE: " << MAX_WORD_SIZE << std::endl;
+
+    for(i = 0; i<words.size(); i++){
+        std::cout << " words[" << i << "]: " << words[i] << std::endl;
+    }
+
+    std::cout << "Que comecem os jogos" << std::endl;
+
+
+    // esse for é equivalente ao while do pseudocodigo
+    for(i=0; i<words.size(); i++){
+        CurrentWord = words[i];
+        j = 0;
+        while(j<CurrentWord.size()-1 && j<PreviousWord.size()-1 && CurrentWord[j]==PreviousWord[j]){
+            j++;
+        }
+        prefixLengthPlusOne = j; // indice do primeiro char que nao é igual em currentWord e em previousWord
+        // we minimize the states from the sufix of the previous word
+        for(j = PreviousWord.size()-1; j>=prefixLengthPlusOne; j--){
+            std::cout << "Entrou em um for que não era pra entrar";
+            TempStates[j]->set_transition(PreviousWord[j], findMinimized(TempStates[j+1]));
+        }
+        // This loop initializes the tail states for the current word
+        for(j=prefixLengthPlusOne; j<=CurrentWord.size()-1; j++){
+            TempStates[j+1]->clear_state();
+            // AGORA O ERRO ESTÁ AQUI! J-2 NÃO EXISTE NO INICIO
+            TempStates[j]->set_transition(CurrentWord[j], TempStates[j+1]);
+        }
+        if(CurrentWord != PreviousWord){
+            TempStates[CurrentWord.size()]->set_final(true);
+            TempStates[CurrentWord.size()]->set_output('-', ""); // Espaço vazio como output se necessário.
+        }
+        for(k=0; k <= prefixLengthPlusOne-1; k++){
+            // definir commonPrefix como o prefixo comum entre current e previous
+            // definir wordSuffix como o resto da current
+            CommonPrefix = TempStates[k]->output(CurrentWord[k]) + currentOutput;
+            WordSuffix = eraseSubString(CommonPrefix, TempStates[k]->output(CurrentWord[k]));
+            TempStates[k]->set_output(CurrentWord[k], CommonPrefix);
+            for(c = FIRST_CHAR; c <= LAST_CHAR; c++){
+                if(TempStates[k+1]->transition(c) != nullptr){
+                    TempStates[k+1]->set_output(c, WordSuffix + TempStates[k+1]->output(c));
+                }
+            }
+            if(TempStates[k+1]->final()){
+                tempSet.clear();
+                for (const auto& tempString : TempStates[k+1]->state_output()) {
+                    tempSet.insert(WordSuffix + tempString);
+                }
+                TempStates[k+1]->set_state_output(tempSet);
+            }
+            currentOutput = eraseSubString(CommonPrefix, currentOutput);
+        }
+        if(CurrentWord == PreviousWord){
+            std::set<std::string> currentStateOutput = TempStates[CurrentWord.size()]->state_output();
+            currentStateOutput.insert(currentOutput); 
+            TempStates[CurrentWord.size()]->set_state_output(currentStateOutput);
+        }
+        else{
+            TempStates[prefixLengthPlusOne]->set_output(CurrentWord[prefixLengthPlusOne], currentOutput);
+        }
+        PreviousWord = CurrentWord;
+    }
+        // aqui minimizamos os estados da ultima palavra
+    for(i = CurrentWord.size()-1; i>=0; i--){
+        TempStates[i]->set_transition(PreviousWord[i], /*findMinimized(TempStates[i+1])*/ TempStates[i+1]);
+    }
+    initialState =/* findMinimized(TempStates[1])*/TempStates[1];
 }
 
 // o map considera os char em ordem na tabela ascii, portanto as aspas simples vem primeiro
@@ -220,7 +329,5 @@ int main() {
 // em ordem alfabetica
 
 // to do kalil - construir a gui para as recomendações que já estão feitas
-// to do kalil - minimizar a trie para virar um fst
 // to do kalil - comparar com outro metodo - arvore binaria ou hashtable (tem que ver na planilha do bizarro quais ainda estao disponiveis)
 // to do kalil - implementar o automato de levenshtein
-
