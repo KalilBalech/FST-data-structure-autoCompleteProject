@@ -116,7 +116,7 @@ public:
         }
     }
 
-    Node* member(Node* refNode) {
+    Node* member(Node* &refNode) {
         auto it = states.find(refNode);
         if (it != states.end()) {
             // O ponteiro para Node está presente em 'states', então retorne-o
@@ -130,15 +130,15 @@ public:
     // Adiciona um novo nó ao FST, mas ainda não conecta ele com outros nós
     void insert(Node* newNode)
     {
-        if(start_state == nullptr){
-            start_state = newNode;
-            // Corrigindo a inserção para usar std::pair
-            this->states.insert({start_state, states.size()});
-        }
-        else{
+        // if(start_state == nullptr){
+        //     start_state = newNode;
+        //     // Corrigindo a inserção para usar std::pair
+        //     this->states.insert({start_state, states.size()});
+        // }
+        // else{
             // Corrigindo a inserção para usar std::pair
             this->states.insert({newNode, states.size()});
-        }
+        // }
     }
 
     int getNodeID(Node* node){
@@ -195,18 +195,28 @@ const char LAST_CHAR = 'z';
 FST MinimalTransducerStatesDitionary;
 int MAX_WORD_SIZE;
 
-Node* findMinimized(Node* s){
+Node* findMinimized(Node*& s){
+    // Supondo que MinimalTransducerStatesDitionary é uma estrutura de dados
+    // que armazena ponteiros para Node e possui métodos 'member' e 'insert'.
     Node* r = MinimalTransducerStatesDitionary.member(s);
+
     if(r == nullptr){
+        std::cout << "Tal node não é membro de MinimalTransducerStatesDitionary" << std::endl;
+        
+        // Copia o estado do nó s e insere a cópia no dicionário.
         r = s->copy_state();
         MinimalTransducerStatesDitionary.insert(r);
-        return r;
+
+        // Atualiza o ponteiro s para apontar para o novo estado.
     }
-    return s;
+
+    // Retorna o ponteiro para o nó minimizado (ou o original, se já estiver minimizado).
+    return r;
 }
 
+
 std::pair<std::vector<std::string>, size_t> getInput() {
-    std::ifstream file("1word.txt"); // Substitua "input.txt" pelo caminho do seu arquivo
+    std::ifstream file("2words.txt"); // Substitua "input.txt" pelo caminho do seu arquivo
     std::vector<std::string> words;
     std::string word;
     size_t maxLength = 0;
@@ -326,26 +336,32 @@ int main()
             TempStates[CurrentWord.size()]->set_state_output(currentStateOutput);
         }
         else{
+            // esse current output está fazendo nada... tá nulo ""
             TempStates[prefixLengthPlusOne]->set_output(CurrentWord[prefixLengthPlusOne], currentOutput);
         }
         PreviousWord = CurrentWord;
     }
         // aqui minimizamos os estados da ultima palavra
+        // TO DO - VERIFICAR AS ADIÇÕES DOS ESTADOS QUE ESTÃO EM TEMPSTATES PARA O MINIMALTRANSDUCERDICTIONARY
     for(i = CurrentWord.size()-1; i>=0; i--){
-        if(TempStates[i+1]->compare_states(findMinimized(TempStates[i+1]))){
-            TempStates[i]->set_transition(PreviousWord[i], TempStates[i+1]);
-        }
-        else{
+        // if(TempStates[i+1]->compare_states(findMinimized(TempStates[i+1]))){
+        //     TempStates[i]->set_transition(PreviousWord[i], TempStates[i+1]);
+        // }
+        // else{
             TempStates[i]->set_transition(PreviousWord[i], findMinimized(TempStates[i+1]));
-        }
+        // }
     }
 
-    if(TempStates[0]->compare_states(findMinimized(TempStates[0]))){
-        initialState = TempStates[0];
-    }
-    else{
+    // if(TempStates[0]->compare_states(findMinimized(TempStates[0]))){
+    //     initialState = TempStates[0];
+    // }
+    // else{
         initialState = findMinimized(TempStates[0]);
-    }
+    // }
+
+    std::cout << "Terminou" << std::endl;
+
+    // TO DO: TESTAR COM MAIS DE UMA PALAVRA: tipo "a" e "b" ou "aa" e "ab"
 
     // std::cout << MinimalTransducerStatesDitionary.getNodeID(TempStates[0]) << std::endl;
 
