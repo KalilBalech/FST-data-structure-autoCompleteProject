@@ -8,7 +8,6 @@
 #include <fstream>
 #include <set>
 
-
 class Node
 {
 public:
@@ -75,40 +74,6 @@ public:
         this->transitions[transitionChar].second = transitionOutput;
     }
 
-    // void print_transducer(std::string fileName, std::string output = ""){
-    //     std::ofstream arquivo(fileName, std::ios::app);
-    //     if (arquivo.is_open()) {
-    //         for (const auto &transition : this->transitions)
-    //         {
-    //             char transitionChar = transition.first;
-    //             Node *targetNode = transition.second.first;
-    //             // adiciona o char da próxima transição
-    //             output = output + transitionChar;
-    //             arquivo << "--------------------------------------------------------" << std::endl;
-    //             arquivo << "Transition from " << this->id << "(" << (this->is_final ? "final" : "not final") << ")"
-    //                     << " to " << targetNode->id << "(" << (targetNode->is_final ? "final" : "not final") << ")" << std::endl;
-    //             arquivo << "Transition char: " << transitionChar << std::endl;
-    //             arquivo << "Output até então: " << output << std::endl;
-    //             arquivo << "--------------------------------------------------------" << std::endl;
-    //             targetNode->print_transducer(fileName, output);
-    //             if (!output.empty())
-    //             {
-    //                 // Remove o char da ultima transição
-    //                 output = std::string(output.begin(), output.end() - 1);
-    //             }
-    //         }
-    //         if (this->is_final == true)
-    //         {
-    //             arquivo << "Final state: " << this->id << "(" << this->is_final << ")" << std::endl;
-    //             arquivo << "OUTPUT FINAL: " << output << std::endl;
-    //         }
-    //         arquivo << "Texto de exemplo." << std::endl;
-    //         arquivo.close();
-    //     } else {
-    //         std::cerr << "Não foi possível abrir o arquivo." << std::endl;
-    //     }
-    // }
-
     Node* copy_state(){
         Node* newNode = new Node(this->is_final, this->stateOutput);
         newNode->transitions = this->transitions;
@@ -134,8 +99,8 @@ public:
 class FST
 {
 private:
-    Node *start_state;
-    std::unordered_map<Node *, int> states; // hash function to find states
+    Node* start_state;
+    std::unordered_map<Node*, int> states; // hash function to find states
 
 public:
     FST() : start_state(nullptr) // start_state é inicializado como nullptr
@@ -151,14 +116,16 @@ public:
         }
     }
 
-    Node* member(Node *refNode) {
+    Node* member(Node* refNode) {
         auto it = states.find(refNode);
         if (it != states.end()) {
-            // Retorna a chave que é o ponteiro para o Node
+            // O ponteiro para Node está presente em 'states', então retorne-o
             return refNode;
         }
+        // O ponteiro para Node não foi encontrado, retorna nullptr
         return nullptr;
     }
+
 
     // Adiciona um novo nó ao FST, mas ainda não conecta ele com outros nós
     void insert(Node* newNode)
@@ -172,6 +139,53 @@ public:
             // Corrigindo a inserção para usar std::pair
             this->states.insert({newNode, states.size()});
         }
+    }
+
+    int getNodeID(Node* node){
+        auto it = states.find(node); // Use find para verificar se o node está presente
+        if (it != states.end()) {
+            // Se o node foi encontrado, retorne o valor associado, que é o ID do node
+            return it->second; // it é um iterador para um par (key, value)
+        }
+        return -1;
+    }
+
+    void print_transducer(Node* start, std::string fileName, std::string output = "") {
+        std::ofstream arquivo(fileName, std::ios::app);
+        if (!arquivo.is_open()) {
+            std::cerr << "Não foi possível abrir o arquivo." << std::endl;
+            return;
+        }
+
+        if (start == nullptr) {
+            // Se o nó de início não for válido, encerre a função.
+            arquivo.close();
+            return;
+        }
+
+        // Se for um nó final, imprimir isso.
+        if (start->final()) {
+            arquivo << "Final state: " << getNodeID(start) << std::endl;
+        }
+
+        // Itera por todas as transições do nó de início.
+        for (const auto &transition : start->transitions) {
+            char transitionChar = transition.first;
+            Node* targetNode = transition.second.first;
+            std::string transitionOutput = transition.second.second;
+
+            // Imprime a transição atual.
+            arquivo << "--------------------------------------------------------" << std::endl;
+            arquivo << "Transition from " << getNodeID(start) << " to " << getNodeID(targetNode) << std::endl;
+            arquivo << "Transition char: " << transitionChar << std::endl;
+            arquivo << "Transition output: " << transitionOutput << std::endl;
+            arquivo << "--------------------------------------------------------" << std::endl;
+
+            // Chama recursivamente para imprimir a partir do nó de destino.
+            print_transducer(targetNode, fileName, output + transitionOutput);
+        }
+
+        arquivo.close();
     }
 
 };
@@ -263,7 +277,6 @@ int main()
 
     std::cout << "Que comecem os jogos" << std::endl;
 
-
     // esse for é equivalente ao while do pseudocodigo
     for(i=0; i<words.size(); i++){
         CurrentWord = words[i];
@@ -319,9 +332,49 @@ int main()
     }
         // aqui minimizamos os estados da ultima palavra
     for(i = CurrentWord.size()-1; i>=0; i--){
-        TempStates[i]->set_transition(PreviousWord[i], /*findMinimized(TempStates[i+1])*/ TempStates[i+1]);
+        if(TempStates[i+1]->compare_states(findMinimized(TempStates[i+1]))){
+            TempStates[i]->set_transition(PreviousWord[i], TempStates[i+1]);
+        }
+        else{
+            TempStates[i]->set_transition(PreviousWord[i], findMinimized(TempStates[i+1]));
+        }
     }
-    initialState =/* findMinimized(TempStates[1])*/TempStates[1];
+
+    if(TempStates[0]->compare_states(findMinimized(TempStates[0]))){
+        initialState = TempStates[0];
+    }
+    else{
+        initialState = findMinimized(TempStates[0]);
+    }
+
+    // std::cout << MinimalTransducerStatesDitionary.getNodeID(TempStates[0]) << std::endl;
+
+    // MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
+
+
+
+    // if(TempStates[0] == findMinimized(TempStates[0])){
+    //     std::cout << "São iguais mesmo" << std::endl;
+    // }
+    // else{
+    //     std::cout << "Não são iguais porra" << std::endl;
+    // }
+
+    // if(TempStates[0]->compare_states(findMinimized(TempStates[0]))){
+    //     std::cout << "São iguais mesmo" << std::endl;
+    // }
+    // else{
+    //     std::cout << "Não são iguais porra" << std::endl;
+    // }
+
+    // Node* newNode = findMinimized(TempStates[0]);
+
+    // std::cout << newNode->final() << std::endl;
+    // std::cout << TempStates[0]->final() << std::endl;
+
+    // std::cout << newNode->transitions['a'].first << std::endl;
+    // std::cout << TempStates[0]->transitions['a'].first << std::endl;
+
 }
 
 // o map considera os char em ordem na tabela ascii, portanto as aspas simples vem primeiro
