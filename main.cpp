@@ -25,7 +25,7 @@ public:
     }
 
     // Define um novo valor para isFinal do Node
-    bool final()
+    bool final() const
     {
         return this->is_final;
     }
@@ -57,7 +57,7 @@ public:
         this->transitions[inputChar] = std::make_pair(targetState, transitionOutput);
     }
 
-    std::set<std::string> state_output(){
+    std::set<std::string> state_output() const{
         return this->stateOutput;
     }
 
@@ -96,11 +96,116 @@ public:
     }
 };
 
+struct StateHasher {
+    std::size_t operator()(const Node* node) const {
+        std::size_t seed = 0;
+        // Hash do estado final
+        std::hash<bool> bool_hasher;
+        hash_combine(seed, bool_hasher(node->is_final));
+
+        // Hash das transições
+        std::hash<char> char_hasher;
+        std::hash<Node*> node_hasher;
+        for (const auto& transition : node->transitions) {
+            hash_combine(seed, char_hasher(transition.first)); // Usa o caractere da transição
+            // hash_combine(seed, node_hasher(transition.second.first)); // Usa o ponteiro do próximo Node
+            // Para a string de saída, você pode precisar de uma função de hash para strings
+            // std::hash<std::string> string_hasher;
+            // hash_combine(seed, string_hasher(transition.second.second));
+        }
+
+        // Hash do stateOutput, se relevante
+        // ...
+
+        return seed;
+    }
+
+private:
+    // Combina o hash do valor 'v' com o hash atual 'seed'
+    template <typename T>
+    inline void hash_combine(std::size_t& seed, const T& v) const {
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+};
+
+// struct StateEqual {
+//     bool operator()(const Node* lhs, const Node* rhs) const {
+//         // Verifique se ambos os ponteiros são não-nulos
+//         if (lhs == nullptr || rhs == nullptr) {
+//             return lhs == rhs; // Ambos nulos são considerados iguais, caso contrário, diferentes
+//         }
+//         // Compare o estado final, as saídas de estado e as transições de ambos os nós
+//         // if(lhs->final() != rhs->final() || lhs->state_output() != rhs->state_output() || lhs->transitions != rhs->transitions){
+//         //     return false;
+//         // }
+//         // return true;
+//         if(lhs->final() && rhs->final()){ // se um é final, os dois são finais, por causa do hash... só comparamos ponteiros que possuem o mesmo hash
+//             if(lhs->transitions.size() == 1 && rhs->transitions.size() == 1){
+//                 if(lhs->transitions.count('-') > 0 && rhs->transitions.count('-') > 0){
+//                     return true;
+//                 }
+//             }
+//         }
+//         else{
+//             Node* lhsNextNode;
+//             Node* rhsNextNode;
+//             for (const auto& transition : lhs->transitions) {
+//                 lhsNextNode = transition.second.first;
+//                 rhsNextNode = rhs->transitions.find(transition.first).first;
+//                 if(!StateEqual.operator(lhsNextNode, rhsNextNode)){
+//                     return false;
+//                 }
+//             }
+//             return true;
+//         }
+//     }
+// };
+
+struct StateEqual {
+    bool operator()(const Node* lhs, const Node* rhs) const {
+        // Verifique se ambos os ponteiros são não-nulos
+        if (lhs == nullptr || rhs == nullptr) {
+            return lhs == rhs; // Ambos nulos são considerados iguais, caso contrário, diferentes
+        }
+
+        // Se ambos os nós são finais
+        if (lhs->final() && rhs->final()) {
+            // E ambos têm apenas uma transição com o char '-'
+            if (lhs->transitions.size() == 1 && rhs->transitions.size() == 1) {
+                auto lhsTransition = lhs->transitions.find('-');
+                auto rhsTransition = rhs->transitions.find('-');
+                // Verifique se ambos têm a transição nula '-'
+                if (lhsTransition != lhs->transitions.end() && rhsTransition != rhs->transitions.end()) {
+                    // E se as transições nulas levam ao mesmo estado (ou equivalente)
+                    return lhsTransition->second.first == rhsTransition->second.first;
+                }
+            }
+            return false;
+        }
+
+        // Se não são finais, todas as transições devem ser equivalentes
+        for (const auto& lhsTransition : lhs->transitions) {
+            auto rhsTransition = rhs->transitions.find(lhsTransition.first);
+            if (rhsTransition == rhs->transitions.end()) {
+                // Se um caractere em lhs não existe em rhs, não são equivalentes
+                return false;
+            } else {
+                // Se os nós para um caractere específico não são equivalentes, então os nós não são equivalentes
+                if (!(*this)(lhsTransition.second.first, rhsTransition->second.first)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+};
+
 class FST
 {
 private:
     Node* start_state;
-    std::unordered_map<Node*, int> states; // hash function to find states
+    std::unordered_map<Node*, int, StateHasher, StateEqual> states; // hash function to find states
 
 public:
     FST() : start_state(nullptr) // start_state é inicializado como nullptr
@@ -122,6 +227,7 @@ public:
             // O ponteiro para Node está presente em 'states', então retorne-o
             return refNode;
         }
+        std::cout << "A member disse que esse ponteiro par nó não pertence ao dictionary" << std::endl;
         // O ponteiro para Node não foi encontrado, retorna nullptr
         return nullptr;
     }
@@ -167,22 +273,23 @@ public:
         if (start->final()) {
             arquivo << "Final state: " << getNodeID(start) << std::endl;
         }
+        else{
+            // Itera por todas as transições do nó de início.
+            for (const auto &transition : start->transitions) {
+                char transitionChar = transition.first;
+                Node* targetNode = transition.second.first;
+                std::string transitionOutput = transition.second.second;
 
-        // Itera por todas as transições do nó de início.
-        for (const auto &transition : start->transitions) {
-            char transitionChar = transition.first;
-            Node* targetNode = transition.second.first;
-            std::string transitionOutput = transition.second.second;
+                // Imprime a transição atual.
+                arquivo << "--------------------------------------------------------" << std::endl;
+                arquivo << "Transition from " << getNodeID(start) << " to " << getNodeID(targetNode) << std::endl;
+                arquivo << "Transition char: " << transitionChar << std::endl;
+                arquivo << "Transition output: " << transitionOutput << std::endl;
+                arquivo << "--------------------------------------------------------" << std::endl;
 
-            // Imprime a transição atual.
-            arquivo << "--------------------------------------------------------" << std::endl;
-            arquivo << "Transition from " << getNodeID(start) << " to " << getNodeID(targetNode) << std::endl;
-            arquivo << "Transition char: " << transitionChar << std::endl;
-            arquivo << "Transition output: " << transitionOutput << std::endl;
-            arquivo << "--------------------------------------------------------" << std::endl;
-
-            // Chama recursivamente para imprimir a partir do nó de destino.
-            print_transducer(targetNode, fileName, output + transitionOutput);
+                // Chama recursivamente para imprimir a partir do nó de destino.
+                print_transducer(targetNode, fileName, output + transitionOutput);
+            }
         }
 
         arquivo.close();
@@ -215,8 +322,8 @@ Node* findMinimized(Node*& s){
 }
 
 
-std::pair<std::vector<std::string>, size_t> getInput() {
-    std::ifstream file("2words.txt"); // Substitua "input.txt" pelo caminho do seu arquivo
+std::pair<std::vector<std::string>, size_t> getInput(std::string filename) {
+    std::ifstream file(filename); // Substitua "input.txt" pelo caminho do seu arquivo
     std::vector<std::string> words;
     std::string word;
     size_t maxLength = 0;
@@ -251,6 +358,17 @@ std::string eraseSubString(std::string stringReference, std::string subString){
     return result;
 }
 
+void cleanOutputFile(std::string fileName){
+    std::ofstream file(fileName, std::ios::out);
+
+    if (file.is_open()) {
+        // O arquivo foi aberto com sucesso e seu conteúdo foi limpo
+        std::cout << "Arquivo limpo com sucesso." << std::endl;
+    } else {
+        // Houve um erro ao abrir o arquivo
+        std::cerr << "Erro ao abrir o arquivo." << std::endl;
+    }
+}
 
 int main()
 {
@@ -260,7 +378,7 @@ int main()
     std::set<std::string> tempSet;
     Node* initialState;
 
-    std::pair<std::vector<std::string>, size_t> result = getInput();
+    std::pair<std::vector<std::string>, size_t> result = getInput("2wordsEqualSuffix.txt");
     std::vector<std::string> words = result.first;
     MAX_WORD_SIZE = result.second;
     std::vector<Node*> TempStates(MAX_WORD_SIZE+1);
@@ -270,6 +388,7 @@ int main()
     //     std::cout << "words[" << i << "]: " << words[i] << std::endl;
     // } 
 
+    // inicial o vetor tempStates
     for(i = 0; i<=MAX_WORD_SIZE; i++){
         TempStates[i] = new Node();
         std::cout << i << std::endl;
@@ -291,25 +410,28 @@ int main()
     for(i=0; i<words.size(); i++){
         CurrentWord = words[i];
         j = 0;
-        while(j<CurrentWord.size()-1 && j<PreviousWord.size()-1 && CurrentWord[j]==PreviousWord[j]){
+        // pega o tamanho do prefixo em comum entre a currentWord e a PreviousWord
+        while(j<=CurrentWord.size()-1 && j<=PreviousWord.size()-1 && CurrentWord[j]==PreviousWord[j]){
             j++;
         }
         prefixLengthPlusOne = j; // indice do primeiro char que nao é igual em currentWord e em previousWord
-        // we minimize the states from the sufix of the previous word
+        // we minimize the states from the sufix of the previous word - transcreve os states de tempStates para o dictionary, em novos states em dictionary, de forma que o initial state ainda continue em tempStates, mas o resto da cadeia esteja em dictionary
         for(j = PreviousWord.size()-1; j>=prefixLengthPlusOne; j--){
             std::cout << "Entrou em um for que não era pra entrar";
             TempStates[j]->set_transition(PreviousWord[j], findMinimized(TempStates[j+1]));
         }
-        // This loop initializes the tail states for the current word
+        // This loop initializes the tail states for the current word - reseta os states de tempStates, exceto o initialState, e cria as transições entre eles para formar o automato da currentWord em tempStates
         for(j=prefixLengthPlusOne; j<=CurrentWord.size()-1; j++){
             TempStates[j+1]->clear_state();
-            // AGORA O ERRO ESTÁ AQUI! J-2 NÃO EXISTE NO INICIO
+            // 
             TempStates[j]->set_transition(CurrentWord[j], TempStates[j+1]);
         }
+        // define o ultimo nó do automato da currentWord, que está em TempStates, como final
         if(CurrentWord != PreviousWord){
             TempStates[CurrentWord.size()]->set_final(true);
             TempStates[CurrentWord.size()]->set_output('-', ""); // Espaço vazio como output se necessário.
         }
+        // só entra se tiver prefixo em comum
         for(k=0; k <= prefixLengthPlusOne-1; k++){
             // definir commonPrefix como o prefixo comum entre current e previous
             // definir wordSuffix como o resto da current
@@ -336,12 +458,12 @@ int main()
             TempStates[CurrentWord.size()]->set_state_output(currentStateOutput);
         }
         else{
-            // esse current output está fazendo nada... tá nulo ""
+            // esse current output está fazendo nada... tá nulo ""... ao input de 2wordsEqualSuffix, na rodada da palavra "bbc" era pra esse currentOutput ser "1", pois "bbc" é a palavra de indice 1 da lista de palavras
             TempStates[prefixLengthPlusOne]->set_output(CurrentWord[prefixLengthPlusOne], currentOutput);
         }
         PreviousWord = CurrentWord;
     }
-        // aqui minimizamos os estados da ultima palavra
+        // aqui minimizamos os estados da ultima palavra - percorre a currentWord de trás pra frente - AQUI ESTÁ A CHAMADA DE MINIMIZAÇÃO QUE NÃO FUNICONA- DEBUGAR A PARTIR DAQUI
         // TO DO - VERIFICAR AS ADIÇÕES DOS ESTADOS QUE ESTÃO EM TEMPSTATES PARA O MINIMALTRANSDUCERDICTIONARY
     for(i = CurrentWord.size()-1; i>=0; i--){
         // if(TempStates[i+1]->compare_states(findMinimized(TempStates[i+1]))){
@@ -363,40 +485,17 @@ int main()
 
     // TO DO: TESTAR COM MAIS DE UMA PALAVRA: tipo "a" e "b" ou "aa" e "ab"
 
-    // std::cout << MinimalTransducerStatesDitionary.getNodeID(TempStates[0]) << std::endl;
-
-    // MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
-
-
-
-    // if(TempStates[0] == findMinimized(TempStates[0])){
-    //     std::cout << "São iguais mesmo" << std::endl;
-    // }
-    // else{
-    //     std::cout << "Não são iguais porra" << std::endl;
-    // }
-
-    // if(TempStates[0]->compare_states(findMinimized(TempStates[0]))){
-    //     std::cout << "São iguais mesmo" << std::endl;
-    // }
-    // else{
-    //     std::cout << "Não são iguais porra" << std::endl;
-    // }
-
-    // Node* newNode = findMinimized(TempStates[0]);
-
-    // std::cout << newNode->final() << std::endl;
-    // std::cout << TempStates[0]->final() << std::endl;
-
-    // std::cout << newNode->transitions['a'].first << std::endl;
-    // std::cout << TempStates[0]->transitions['a'].first << std::endl;
-
+    cleanOutputFile("printFST.txt");
+    MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
 }
 
 // o map considera os char em ordem na tabela ascii, portanto as aspas simples vem primeiro
 // do que todas as maiusculas, em ordem alfabetica, e essas vem antes de todas as minusculas,
 // em ordem alfabetica
 
+// TO DO: A FUNÇÃO MEMBER SÓ RETORNA TRUE SE O PONTEIRO FOR O MESMO QUE O ENVIADO NO PARAMETRO
+// OPÇÕES: ALTERAR A MEMBER E A FINDMINIMIZED, PARA FUNCIONAREM COM PONTEIROS DIFERENTES QUE APONTAM PARA O MESMO NÓ
+// OU DAR UM JEITO DE MANDAR O MESMO PONTEIRO 
 // to do kalil - construir a gui para as recomendações que já estão feitas
 // to do kalil - comparar com outro metodo - arvore binaria ou hashtable (tem que ver na planilha do bizarro quais ainda estao disponiveis)
 // to do kalil - implementar o automato de levenshtein
