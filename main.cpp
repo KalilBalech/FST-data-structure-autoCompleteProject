@@ -19,7 +19,7 @@ class Node
 public:
     // int id;
     // O mapa agora associa um par de char e int (peso da transição) a um Node*.
-    std::map<char, std::pair<Node *, std::string>> transitions; // Agora usando std::map - esse char é o transition outuput, ou só "output"
+    std::map<char, Node *> transitions; // Agora usando std::map - esse char é o transition outuput, ou só "output"
     bool is_final;
     // std::set<std::string> stateOutput; // isso aqui é o node output, ou "state output" - somente diferente de '' se isfinal for true
 
@@ -48,7 +48,7 @@ public:
         if (it != this->transitions.end())
         {
             // Retorna o estado de destino se a transição for encontrada.
-            return it->second.first;
+            return it->second;
         }
         else
         {
@@ -60,16 +60,16 @@ public:
     // Dado um char e um state, define uma transição
     void set_transition(char inputChar, Node *targetState, std::string transitionOutput = "")
     {
-        this->transitions[inputChar] = std::make_pair(targetState, transitionOutput);
+        this->transitions[inputChar] = targetState;
     }
 
-    std::string output(char transitionChar){
-        return this->transitions[transitionChar].second;
-    }
+    // std::string output(char transitionChar){
+    //     return this->transitions[transitionChar].second;
+    // }
 
-    void set_output(char transitionChar, std::string transitionOutput){
-        this->transitions[transitionChar].second = transitionOutput;
-    }
+    // void set_output(char transitionChar, std::string transitionOutput){
+    //     this->transitions[transitionChar].second = transitionOutput;
+    // }
 
     Node* copy_state(){
         Node* newNode = new Node(this->is_final/*, this->stateOutput*/);
@@ -104,11 +104,9 @@ struct StateHasher {
         std::hash<char> char_hasher;
         std::hash<Node*> node_hasher;
         for (const auto& transition : node->transitions) {
-            // if(transition.first != '-'){
                 hash_combine(seed, char_hasher(transition.first)); // Usa o caractere da transi ção
-                hash_combine(seed, bool_hasher(transition.second.first->final()));
-            // }
-            // hash_combine(seed, node_hasher(transition.second.first)); // Usa o ponteiro do próximo Node
+                hash_combine(seed, bool_hasher(transition.second->final()));
+                hash_combine(seed, node_hasher(transition.second)); // Usa o ponteiro do próximo Node
             // Para a string de saída, você pode precisar de uma função de hash para strings
             // std::hash<std::string> string_hasher;
             // hash_combine(seed, string_hasher(transition.second.second));
@@ -149,7 +147,7 @@ struct StateEqual {
                     return false;
                 } else {
                     // Se os nós para um caractere específico não são equivalentes, então os nós não são equivalentes
-                    if (!(*this)(lhsTransition.second.first, rhsTransition->second.first)) {
+                    if (!(*this)(lhsTransition.second, rhsTransition->second)) {
                         return false;
                     }
                 }
@@ -227,17 +225,15 @@ public:
             for (const auto &transition : start->transitions) {
                 char transitionChar = transition.first;
                 // if(transitionChar != '-'){
-                    Node* targetNode = transition.second.first;
-                    std::string transitionOutput = transition.second.second;
+                    Node* targetNode = transition.second;
                     // Imprime a transição atual.
                     arquivo << "--------------------------------------------------------" << std::endl;
                     arquivo << "Transition from " << getNodeID(start) << " to " << getNodeID(targetNode) << std::endl;
                     arquivo << "Transition char: " << transitionChar << std::endl;
-                    arquivo << "Transition output: " << transitionOutput << std::endl;
                     arquivo << "--------------------------------------------------------" << std::endl;
 
                     // Chama recursivamente para imprimir a partir do nó de destino.
-                    print_transducer(targetNode, fileName, output + transitionOutput);  
+                    print_transducer(targetNode, fileName, output);  
                 // }
             }
         // }
@@ -270,7 +266,7 @@ public:
         // Processa as transições iniciais
         for (const auto& transition : start->transitions) {
             transitionChar = transition.first;
-            targetNode = transition.second.first;
+            targetNode = transition.second;
             std::tuple<Node*, char, Node*> myTransition = std::make_tuple(start, transitionChar, targetNode);
 
             if (/*transitionChar != '-' && */addedTransitions.find(myTransition) == addedTransitions.end()) {
@@ -292,7 +288,7 @@ public:
 
             for (const auto& trans : currentNode->transitions) {
                 char transitionChar = trans.first;
-                targetNode = trans.second.first;
+                targetNode = trans.second;
                 std::tuple<Node*, char, Node*> nextTransition = std::make_tuple(currentNode, transitionChar, targetNode);
 
                 if (/*transitionChar != '-' && */addedTransitions.find(nextTransition) == addedTransitions.end()) {
@@ -307,7 +303,11 @@ public:
         out.close();
     }
 
-    void get_final_strings(Node* start, std::string fileName, std::string output = "") {
+    std::vector<std::string> get_final_strings(Node* start, std::string fileName, std::string output = "", std::vector<std::string>& recomendations= {}) {
+        if(recomendations.size() == 10){
+            return recomendations;
+        }
+
         std::ofstream arquivo(fileName, std::ios::app);
         if (!arquivo.is_open()) {
             std::cerr << "Não foi possível abrir o arquivo." << std::endl;
@@ -322,6 +322,7 @@ public:
 
         // Se for um nó final, imprimir isso.
         if (start->final()) {
+            recomendations.push_back(output);
             arquivo << "Final state: " << getNodeID(start) << " - " << output << std::endl;
         }
         // else{
@@ -329,9 +330,9 @@ public:
             for (const auto &transition : start->transitions) {
                 char transitionChar = transition.first;
                 // if(transitionChar != '-'){
-                    Node* targetNode = transition.second.first;
+                    Node* targetNode = transition.second;
                     // Chama recursivamente para imprimir a partir do nó de destino.
-                    get_final_strings(targetNode, fileName, output + transitionChar);  
+                    return get_final_strings(targetNode, fileName, output + transitionChar, recomendations);  
                 // }
             }
         // }
@@ -345,7 +346,7 @@ public:
             auto it = start->transitions.find(c);
             if (it != start->transitions.end()){
                 // Retorna o estado de destino se a transição for encontrada.
-                start = it->second.first;
+                start = it->second;
             }
             else{
                 // Retorna nullptr se não houver transição para o caractere de entrada.
@@ -445,7 +446,7 @@ int main()
     std::string PreviousWord, CurrentWord, tempString;
     Node* initialState;
 
-    std::string inputFileName = "./simpleInput/4words.txt";
+    std::string inputFileName = "./simpleInput/american-english-noaccent.txt";
 
     std::pair<std::vector<std::string>, size_t> result = getInput(inputFileName);
     std::vector<std::string> words = result.first;
@@ -505,8 +506,8 @@ int main()
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     std::cout << "Time taken by function: " << duration.count() << " milliseconds" << std::endl;
 
-    cleanOutputFile("printFST.txt");
-    MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
+    // cleanOutputFile("printFST.txt");
+    // MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
 
     std::string inputText = "";
 
@@ -515,8 +516,8 @@ int main()
     cleanOutputFile("final_strings.txt");
     MinimalTransducerStatesDitionary.get_final_strings(startSearchNode, "final_strings.txt", inputText);
 
-    cleanOutputFile("graph.dot");
-    MinimalTransducerStatesDitionary.generateDotFile(initialState, "graph.dot");
+    // cleanOutputFile("graph.dot");
+    // MinimalTransducerStatesDitionary.generateDotFile(initialState, "graph.dot");
     // std::ofstream out("graph.dot", std::ios::app);
     // out << "}\n";
     // rodar: dot -Tpng graph.dot -o graph.png
