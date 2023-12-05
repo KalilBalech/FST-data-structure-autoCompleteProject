@@ -7,6 +7,12 @@
 #include <string>
 #include <fstream>
 #include <set>
+#include <queue>
+#include <unordered_set>
+#include <tuple>
+#include <algorithm>
+#include <unicode/coll.h>  // ICU Collation
+
 
 class Node
 {
@@ -57,15 +63,6 @@ public:
         this->transitions[inputChar] = std::make_pair(targetState, transitionOutput);
     }
 
-    // std::set<std::string> state_output() const{
-    //     return this->stateOutput;
-    // }
-
-    // void set_state_output(std::set<std::string> stateOutput){
-    //     this->stateOutput = stateOutput;
-    // }
-
-    //  return the output string for a transitionChar
     std::string output(char transitionChar){
         return this->transitions[transitionChar].second;
     }
@@ -193,7 +190,6 @@ public:
         return nullptr;
     }
 
-
     // Adiciona um novo nó ao FST, mas ainda não conecta ele com outros nós
     void insert(Node* newNode)
     {
@@ -248,6 +244,68 @@ public:
 
         arquivo.close();
     }
+   
+   void generateDotFile(Node* start, const std::string& filename) {
+        std::ofstream out(filename, std::ios::app);  // Abrir o arquivo apenas uma vez
+
+        if (!out.is_open()) {
+            std::cerr << "Não foi possível abrir o arquivo." << std::endl;
+            return;
+        }
+
+        out << "digraph G {\n";
+        out << "    rankdir=LR;\n";
+
+        if (start == nullptr) {
+            // Se o nó de início não for válido, encerre a função.
+            out.close();
+            return;
+        }
+
+        std::queue<std::tuple<Node*, char, Node*>> queue;
+        std::set<std::tuple<Node*, char, Node*>> addedTransitions;
+        char transitionChar;
+        Node* targetNode;
+
+        // Processa as transições iniciais
+        for (const auto& transition : start->transitions) {
+            transitionChar = transition.first;
+            targetNode = transition.second.first;
+            std::tuple<Node*, char, Node*> myTransition = std::make_tuple(start, transitionChar, targetNode);
+
+            if (transitionChar != '-' && addedTransitions.find(myTransition) == addedTransitions.end()) {
+                addedTransitions.insert(myTransition);
+                out << "    " << getNodeID(start) << " -> " << getNodeID(targetNode) << " [label=\"" << transitionChar << "\"];\n";
+                queue.push(myTransition);
+            }
+        }
+
+        while (!queue.empty()) {
+            std::tuple<Node*, char, Node*> currentTransition = queue.front();
+            queue.pop();
+
+            Node* currentNode = std::get<2>(currentTransition);
+
+            if (currentNode->final()) {
+                out << "    " << getNodeID(currentNode) << " [penwidth=3];\n";
+            }
+
+            for (const auto& trans : currentNode->transitions) {
+                char transitionChar = trans.first;
+                targetNode = trans.second.first;
+                std::tuple<Node*, char, Node*> nextTransition = std::make_tuple(currentNode, transitionChar, targetNode);
+
+                if (transitionChar != '-' && addedTransitions.find(nextTransition) == addedTransitions.end()) {
+                    addedTransitions.insert(nextTransition);
+                    out << "    " << getNodeID(currentNode) << " -> " << getNodeID(targetNode) << " [label=\"" << transitionChar << "\"];\n";
+                    queue.push(nextTransition);
+                }
+            }
+        }
+
+        out << "}\n";
+        out.close();
+    }
 
     void get_final_strings(Node* start, std::string fileName, std::string output = "") {
         std::ofstream arquivo(fileName, std::ios::app);
@@ -300,8 +358,6 @@ public:
 
 };
 
-// const char FIRST_CHAR = 'a';
-// const char LAST_CHAR = 'z';
 FST MinimalTransducerStatesDitionary;
 int MAX_WORD_SIZE;
 
@@ -324,16 +380,14 @@ Node* findMinimized(Node*& s){
     return r;
 }
 
-
-std::pair<std::vector<std::string>, size_t> getInput(std::string filename) {
-    std::ifstream file(filename); // Substitua "input.txt" pelo caminho do seu arquivo
+std::pair<std::vector<std::string>, size_t> getInput(const std::string& filename) {
+    std::ifstream file(filename);
     std::vector<std::string> words;
     std::string word;
     size_t maxLength = 0;
 
     if (!file.is_open()) {
-        std::cout << "Não foi possível abrir o arquivo." << std::endl;
-        // Aqui você pode optar por retornar um par vazio ou lançar uma exceção
+        std::cerr << "Não foi possível abrir o arquivo." << std::endl;
         return std::make_pair(std::vector<std::string>(), 0);
     }
 
@@ -346,8 +400,36 @@ std::pair<std::vector<std::string>, size_t> getInput(std::string filename) {
 
     file.close();
 
-    return std::make_pair(words, maxLength); // Correção aqui
+    return std::make_pair(words, maxLength);
 }
+
+void writeSortedWordsToFile(const std::vector<std::string>& words, const std::string& outputFilename) {
+    std::ofstream outputFile(outputFilename);
+
+    if (!outputFile.is_open()) {
+        std::cerr << "Não foi possível abrir o arquivo para escrita." << std::endl;
+        return;
+    }
+
+    for (const auto& word : words) {
+        outputFile << word << "\n";
+    }
+
+    outputFile.close();
+}
+
+// void sortUnicodeStrings(std::vector<std::string>& words) {
+//     UErrorCode status = U_ZERO_ERROR;
+//     icu::Collator* collator = icu::Collator::createInstance(status);
+
+//     std::sort(words.begin(), words.end(), [collator](const std::string& a, const std::string& b) {
+//         icu::UnicodeString ua = icu::UnicodeString::fromUTF8(a);
+//         icu::UnicodeString ub = icu::UnicodeString::fromUTF8(b);
+//         return collator->compare(ua, ub) == icu::Collator::LESS;
+//     });
+
+//     delete collator;
+// }
 
 void cleanOutputFile(std::string fileName){
     std::ofstream file(fileName, std::ios::out);
@@ -365,26 +447,33 @@ int main()
 {
     int i, j, k, prefixLengthPlusOne;
     char c;
-    std::string PreviousWord, CurrentWord, CommonPrefix, currentOutput, WordSuffix, tempString;
-    std::set<std::string> tempSet;
+    std::string PreviousWord, CurrentWord, tempString;
     Node* initialState;
 
-    std::string inputFileName = "./simpleInput/american-english.txt";
+    std::string inputFileName = "./simpleInput/4words.txt";
 
     std::pair<std::vector<std::string>, size_t> result = getInput(inputFileName);
     std::vector<std::string> words = result.first;
     MAX_WORD_SIZE = result.second;
+    std::sort(words.begin(), words.end());
+    // writeSortedWordsToFile(words, inputFileName);
+    // sortUnicodeStrings(words);
+    // for(i=0; i<words.size(); i++){
+    //     std::cout << words[i] <<std::endl;
+    // }
+    // std::string palavra = "Ångström's";
+    // for(char c: palavra){
+    //     std::cout << c << std::endl;
+    // }
     std::vector<Node*> TempStates(MAX_WORD_SIZE+1);
     std::cout << "MAX_WORD_SIZE: " << MAX_WORD_SIZE << std::endl;
 
     // inicial o vetor tempStates
     for(i = 0; i<=MAX_WORD_SIZE; i++){
         TempStates[i] = new Node();
-        std::cout << i << std::endl;
     }
     
     PreviousWord = "";
-    currentOutput = "";
     TempStates[0]->clear_state();
 
     // esse for é equivalente ao while do pseudocodigo
@@ -432,6 +521,12 @@ int main()
 
     cleanOutputFile("final_strings.txt");
     MinimalTransducerStatesDitionary.get_final_strings(startSearchNode, "final_strings.txt", inputText);
+
+    cleanOutputFile("graph.dot");
+    MinimalTransducerStatesDitionary.generateDotFile(initialState, "graph.dot");
+    // std::ofstream out("graph.dot", std::ios::app);
+    // out << "}\n";
+    // rodar: dot -Tpng graph.dot -o graph.png
 }
 
 // o map considera os char em ordem na tabela ascii, portanto as aspas simples vem primeiro
