@@ -107,7 +107,9 @@ struct StateHasher {
         std::hash<char> char_hasher;
         std::hash<Node*> node_hasher;
         for (const auto& transition : node->transitions) {
-            hash_combine(seed, char_hasher(transition.first)); // Usa o caractere da transição
+            if(transition.first != '-'){
+                hash_combine(seed, char_hasher(transition.first)); // Usa o caractere da transição
+            }
             // hash_combine(seed, node_hasher(transition.second.first)); // Usa o ponteiro do próximo Node
             // Para a string de saída, você pode precisar de uma função de hash para strings
             // std::hash<std::string> string_hasher;
@@ -169,37 +171,67 @@ struct StateEqual {
             return lhs == rhs; // Ambos nulos são considerados iguais, caso contrário, diferentes
         }
 
-        // Se ambos os nós são finais
-        if (lhs->final() && rhs->final()) {
-            // E ambos têm apenas uma transição com o char '-'
-            if (lhs->transitions.size() == 1 && rhs->transitions.size() == 1) {
-                auto lhsTransition = lhs->transitions.find('-');
-                auto rhsTransition = rhs->transitions.find('-');
-                // Verifique se ambos têm a transição nula '-'
-                if (lhsTransition != lhs->transitions.end() && rhsTransition != rhs->transitions.end()) {
-                    // E se as transições nulas levam ao mesmo estado (ou equivalente)
-                    return lhsTransition->second.first == rhsTransition->second.first;
-                }
-            }
+        // Se ambos os nós tem finais diferentes
+        if (lhs->final() != rhs->final()) {
             return false;
         }
 
-        // Se não são finais, todas as transições devem ser equivalentes
         for (const auto& lhsTransition : lhs->transitions) {
-            auto rhsTransition = rhs->transitions.find(lhsTransition.first);
-            if (rhsTransition == rhs->transitions.end()) {
-                // Se um caractere em lhs não existe em rhs, não são equivalentes
-                return false;
-            } else {
-                // Se os nós para um caractere específico não são equivalentes, então os nós não são equivalentes
-                if (!(*this)(lhsTransition.second.first, rhsTransition->second.first)) {
+            if(lhsTransition.first != '-'){
+                auto rhsTransition = rhs->transitions.find(lhsTransition.first);
+                if (rhsTransition == rhs->transitions.end()) {
+                    // Se um caractere em lhs não existe em rhs, não são equivalentes
                     return false;
+                } else {
+                    // Se os nós para um caractere específico não são equivalentes, então os nós não são equivalentes
+                    if (!(*this)(lhsTransition.second.first, rhsTransition->second.first)) {
+                        return false;
+                    }
                 }
             }
         }
         return true;
     }
 };
+
+// struct StateEqual {
+//     bool operator()(const Node* lhs, const Node* rhs) const {
+//         // Verifique se ambos os ponteiros são não-nulos
+//         if (lhs == nullptr || rhs == nullptr) {
+//             return lhs == rhs; // Ambos nulos são considerados iguais, caso contrário, diferentes
+//         }
+
+//         // Se ambos os nós são finais
+//         if (lhs->final() && rhs->final()) {
+//             // E ambos têm apenas uma transição com o char '-'
+//             if (lhs->transitions.size() == 1 && rhs->transitions.size() == 1) {
+//                 auto lhsTransition = lhs->transitions.find('-');
+//                 auto rhsTransition = rhs->transitions.find('-');
+//                 // Verifique se ambos têm a transição nula '-'
+//                 if (lhsTransition != lhs->transitions.end() && rhsTransition != rhs->transitions.end()) {
+//                     // E se as transições nulas levam ao mesmo estado (ou equivalente)
+//                     return lhsTransition->second.first == rhsTransition->second.first;
+//                 }
+//             }
+//             return false;
+//         }
+
+//         // Se não são finais, todas as transições devem ser equivalentes
+//         for (const auto& lhsTransition : lhs->transitions) {
+//             auto rhsTransition = rhs->transitions.find(lhsTransition.first);
+//             if (rhsTransition == rhs->transitions.end()) {
+//                 // Se um caractere em lhs não existe em rhs, não são equivalentes
+//                 return false;
+//             } else {
+//                 // Se os nós para um caractere específico não são equivalentes, então os nós não são equivalentes
+//                 if (!(*this)(lhsTransition.second.first, rhsTransition->second.first)) {
+//                     return false;
+//                 }
+//             }
+//         }
+//         return true;
+//     }
+// };
 
 class FST
 {
@@ -247,7 +279,7 @@ public:
         // }
     }
 
-    int getNodeID(Node* node){
+    int getNodeID(Node* &node){
         auto it = states.find(node); // Use find para verificar se o node está presente
         if (it != states.end()) {
             // Se o node foi encontrado, retorne o valor associado, que é o ID do node
@@ -273,24 +305,25 @@ public:
         if (start->final()) {
             arquivo << "Final state: " << getNodeID(start) << std::endl;
         }
-        else{
+        // else{
             // Itera por todas as transições do nó de início.
             for (const auto &transition : start->transitions) {
                 char transitionChar = transition.first;
-                Node* targetNode = transition.second.first;
-                std::string transitionOutput = transition.second.second;
+                if(transitionChar != '-'){
+                    Node* targetNode = transition.second.first;
+                    std::string transitionOutput = transition.second.second;
+                    // Imprime a transição atual.
+                    arquivo << "--------------------------------------------------------" << std::endl;
+                    arquivo << "Transition from " << getNodeID(start) << " to " << getNodeID(targetNode) << std::endl;
+                    arquivo << "Transition char: " << transitionChar << std::endl;
+                    arquivo << "Transition output: " << transitionOutput << std::endl;
+                    arquivo << "--------------------------------------------------------" << std::endl;
 
-                // Imprime a transição atual.
-                arquivo << "--------------------------------------------------------" << std::endl;
-                arquivo << "Transition from " << getNodeID(start) << " to " << getNodeID(targetNode) << std::endl;
-                arquivo << "Transition char: " << transitionChar << std::endl;
-                arquivo << "Transition output: " << transitionOutput << std::endl;
-                arquivo << "--------------------------------------------------------" << std::endl;
-
-                // Chama recursivamente para imprimir a partir do nó de destino.
-                print_transducer(targetNode, fileName, output + transitionOutput);
+                    // Chama recursivamente para imprimir a partir do nó de destino.
+                    print_transducer(targetNode, fileName, output + transitionOutput);  
+                }
             }
-        }
+        // }
 
         arquivo.close();
     }
@@ -378,7 +411,7 @@ int main()
     std::set<std::string> tempSet;
     Node* initialState;
 
-    std::pair<std::vector<std::string>, size_t> result = getInput("2wordsEqualSuffix.txt");
+    std::pair<std::vector<std::string>, size_t> result = getInput("2wordsEqualSuffixAndPrefix.txt");
     std::vector<std::string> words = result.first;
     MAX_WORD_SIZE = result.second;
     std::vector<Node*> TempStates(MAX_WORD_SIZE+1);

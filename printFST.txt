@@ -1,62 +1,27 @@
 --------------------------------------------------------
-Transition from 8 to 5
+Transition from 3 to 2
 Transition char: a
 Transition output: 
 --------------------------------------------------------
 --------------------------------------------------------
-Transition from 5 to 4
+Transition from 2 to 1
 Transition char: b
 Transition output: 
 --------------------------------------------------------
 --------------------------------------------------------
-Transition from 4 to 3
-Transition char: c
-Transition output: 
---------------------------------------------------------
---------------------------------------------------------
-Transition from 3 to 2
-Transition char: d
-Transition output: 
---------------------------------------------------------
---------------------------------------------------------
-Transition from 2 to 1
-Transition char: e
-Transition output: 
---------------------------------------------------------
---------------------------------------------------------
 Transition from 1 to 0
-Transition char: f
+Transition char: c
 Transition output: 
 --------------------------------------------------------
 Final state: 0
 --------------------------------------------------------
-Transition from 8 to 7
-Transition char: x
-Transition output: 
---------------------------------------------------------
---------------------------------------------------------
-Transition from 7 to 6
-Transition char: y
-Transition output: 
---------------------------------------------------------
---------------------------------------------------------
-Transition from 6 to 3
-Transition char: z
-Transition output: 
---------------------------------------------------------
---------------------------------------------------------
-Transition from 3 to 2
+Transition from 2 to 1
 Transition char: d
 Transition output: 
 --------------------------------------------------------
 --------------------------------------------------------
-Transition from 2 to 1
-Transition char: e
-Transition output: 
---------------------------------------------------------
---------------------------------------------------------
 Transition from 1 to 0
-Transition char: f
+Transition char: c
 Transition output: 
 --------------------------------------------------------
 Final state: 0
