@@ -257,7 +257,7 @@ public:
         auto it = states.find(refNode);
         if (it != states.end()) {
             // O ponteiro para Node está presente em 'states', então retorne-o
-            return refNode;
+            return it->first;
         }
         std::cout << "A member disse que esse ponteiro par nó não pertence ao dictionary" << std::endl;
         // O ponteiro para Node não foi encontrado, retorna nullptr
@@ -326,6 +326,55 @@ public:
         // }
 
         arquivo.close();
+    }
+
+    void get_final_strings(Node* start, std::string fileName, std::string output = "") {
+        std::ofstream arquivo(fileName, std::ios::app);
+        if (!arquivo.is_open()) {
+            std::cerr << "Não foi possível abrir o arquivo." << std::endl;
+            return;
+        }
+
+        if (start == nullptr) {
+            // Se o nó de início não for válido, encerre a função.
+            arquivo.close();
+            return;
+        }
+
+        // Se for um nó final, imprimir isso.
+        if (start->final()) {
+            arquivo << "Final state: " << getNodeID(start) << " - " << output << std::endl;
+        }
+        // else{
+            // Itera por todas as transições do nó de início.
+            for (const auto &transition : start->transitions) {
+                char transitionChar = transition.first;
+                if(transitionChar != '-'){
+                    Node* targetNode = transition.second.first;
+                    // Chama recursivamente para imprimir a partir do nó de destino.
+                    get_final_strings(targetNode, fileName, output + transitionChar);  
+                }
+            }
+        // }
+
+        arquivo.close();
+    }
+
+    Node* get_start_search_node(Node* start, std::string search_string) {
+
+        for(char c: search_string){
+            auto it = start->transitions.find(c);
+            if (it != start->transitions.end()){
+                // Retorna o estado de destino se a transição for encontrada.
+                start = it->second.first;
+            }
+            else{
+                // Retorna nullptr se não houver transição para o caractere de entrada.
+                start = nullptr;
+                break;
+            }
+        }
+        return start;
     }
 
 };
@@ -411,7 +460,9 @@ int main()
     std::set<std::string> tempSet;
     Node* initialState;
 
-    std::pair<std::vector<std::string>, size_t> result = getInput("2wordsEqualSuffixAndPrefix.txt");
+    std::string inputFileName = "./simpleInput/10words.txt";
+
+    std::pair<std::vector<std::string>, size_t> result = getInput(inputFileName);
     std::vector<std::string> words = result.first;
     MAX_WORD_SIZE = result.second;
     std::vector<Node*> TempStates(MAX_WORD_SIZE+1);
@@ -465,35 +516,35 @@ int main()
             TempStates[CurrentWord.size()]->set_output('-', ""); // Espaço vazio como output se necessário.
         }
         // só entra se tiver prefixo em comum
-        for(k=0; k <= prefixLengthPlusOne-1; k++){
-            // definir commonPrefix como o prefixo comum entre current e previous
-            // definir wordSuffix como o resto da current
-            CommonPrefix = TempStates[k]->output(CurrentWord[k]) + currentOutput;
-            WordSuffix = eraseSubString(CommonPrefix, TempStates[k]->output(CurrentWord[k]));
-            TempStates[k]->set_output(CurrentWord[k], CommonPrefix);
-            for(c = FIRST_CHAR; c <= LAST_CHAR; c++){
-                if(TempStates[k+1]->transition(c) != nullptr){
-                    TempStates[k+1]->set_output(c, WordSuffix + TempStates[k+1]->output(c));
-                }
-            }
-            if(TempStates[k+1]->final()){
-                tempSet.clear();
-                for (const auto& tempString : TempStates[k+1]->state_output()) {
-                    tempSet.insert(WordSuffix + tempString);
-                }
-                TempStates[k+1]->set_state_output(tempSet);
-            }
-            currentOutput = eraseSubString(CommonPrefix, currentOutput);
-        }
-        if(CurrentWord == PreviousWord){
-            std::set<std::string> currentStateOutput = TempStates[CurrentWord.size()]->state_output();
-            currentStateOutput.insert(currentOutput); 
-            TempStates[CurrentWord.size()]->set_state_output(currentStateOutput);
-        }
-        else{
-            // esse current output está fazendo nada... tá nulo ""... ao input de 2wordsEqualSuffix, na rodada da palavra "bbc" era pra esse currentOutput ser "1", pois "bbc" é a palavra de indice 1 da lista de palavras
-            TempStates[prefixLengthPlusOne]->set_output(CurrentWord[prefixLengthPlusOne], currentOutput);
-        }
+        // for(k=0; k <= prefixLengthPlusOne-1; k++){
+        //     // definir commonPrefix como o prefixo comum entre current e previous
+        //     // definir wordSuffix como o resto da current
+        //     CommonPrefix = TempStates[k]->output(CurrentWord[k]) + currentOutput;
+        //     WordSuffix = eraseSubString(CommonPrefix, TempStates[k]->output(CurrentWord[k]));
+        //     TempStates[k]->set_output(CurrentWord[k], CommonPrefix);
+        //     for(c = FIRST_CHAR; c <= LAST_CHAR; c++){
+        //         if(TempStates[k+1]->transition(c) != nullptr){
+        //             TempStates[k+1]->set_output(c, WordSuffix + TempStates[k+1]->output(c));
+        //         }
+        //     }
+        //     if(TempStates[k+1]->final()){
+        //         tempSet.clear();
+        //         for (const auto& tempString : TempStates[k+1]->state_output()) {
+        //             tempSet.insert(WordSuffix + tempString);
+        //         }
+        //         TempStates[k+1]->set_state_output(tempSet);
+        //     }
+        //     currentOutput = eraseSubString(CommonPrefix, currentOutput);
+        // }
+        // if(CurrentWord == PreviousWord){
+        //     std::set<std::string> currentStateOutput = TempStates[CurrentWord.size()]->state_output();
+        //     currentStateOutput.insert(currentOutput); 
+        //     TempStates[CurrentWord.size()]->set_state_output(currentStateOutput);
+        // }
+        // else{
+        //     // esse current output está fazendo nada... tá nulo ""... ao input de 2wordsEqualSuffix, na rodada da palavra "bbc" era pra esse currentOutput ser "1", pois "bbc" é a palavra de indice 1 da lista de palavras
+        //     TempStates[prefixLengthPlusOne]->set_output(CurrentWord[prefixLengthPlusOne], currentOutput);
+        // }
         PreviousWord = CurrentWord;
     }
         // aqui minimizamos os estados da ultima palavra - percorre a currentWord de trás pra frente - AQUI ESTÁ A CHAMADA DE MINIMIZAÇÃO QUE NÃO FUNICONA- DEBUGAR A PARTIR DAQUI
@@ -520,6 +571,13 @@ int main()
 
     cleanOutputFile("printFST.txt");
     MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
+
+    std::string inputText = "cide";
+
+    Node* startSearchNode = MinimalTransducerStatesDitionary.get_start_search_node(initialState, inputText);
+
+    cleanOutputFile("final_strings.txt");
+    MinimalTransducerStatesDitionary.get_final_strings(startSearchNode, "final_strings.txt", inputText);
 }
 
 // o map considera os char em ordem na tabela ascii, portanto as aspas simples vem primeiro
