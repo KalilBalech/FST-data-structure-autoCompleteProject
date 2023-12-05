@@ -13,6 +13,9 @@
 #include <algorithm>
 #include <chrono>
 
+int quantidadeDeNodes = 0;
+int quantidadeDeTransicoes = 0;
+
 
 class Node
 {
@@ -60,16 +63,9 @@ public:
     // Dado um char e um state, define uma transição
     void set_transition(char inputChar, Node *targetState, std::string transitionOutput = "")
     {
+        quantidadeDeTransicoes++;
         this->transitions[inputChar] = targetState;
     }
-
-    // std::string output(char transitionChar){
-    //     return this->transitions[transitionChar].second;
-    // }
-
-    // void set_output(char transitionChar, std::string transitionOutput){
-    //     this->transitions[transitionChar].second = transitionOutput;
-    // }
 
     Node* copy_state(){
         Node* newNode = new Node(this->is_final/*, this->stateOutput*/);
@@ -191,6 +187,7 @@ public:
     // Adiciona um novo nó ao FST, mas ainda não conecta ele com outros nós
     void insert(Node* newNode)
     {
+        quantidadeDeNodes++;
         this->states.insert({newNode, states.size()});
     }
 
@@ -203,43 +200,43 @@ public:
         return -1;
     }
 
-    void print_transducer(Node* start, std::string fileName, std::string output = "") {
-        std::ofstream arquivo(fileName, std::ios::app);
-        if (!arquivo.is_open()) {
-            std::cerr << "Não foi possível abrir o arquivo." << std::endl;
-            return;
-        }
+    // void print_transducer(Node* start, std::string fileName, std::string output = "") {
+    //     std::ofstream arquivo(fileName, std::ios::app);
+    //     if (!arquivo.is_open()) {
+    //         std::cerr << "Não foi possível abrir o arquivo." << std::endl;
+    //         return;
+    //     }
 
-        if (start == nullptr) {
-            // Se o nó de início não for válido, encerre a função.
-            arquivo.close();
-            return;
-        }
+    //     if (start == nullptr) {
+    //         // Se o nó de início não for válido, encerre a função.
+    //         arquivo.close();
+    //         return;
+    //     }
 
-        // Se for um nó final, imprimir isso.
-        if (start->final()) {
-            arquivo << "Final state: " << getNodeID(start) << std::endl;
-        }
-        // else{
-            // Itera por todas as transições do nó de início.
-            for (const auto &transition : start->transitions) {
-                char transitionChar = transition.first;
-                // if(transitionChar != '-'){
-                    Node* targetNode = transition.second;
-                    // Imprime a transição atual.
-                    arquivo << "--------------------------------------------------------" << std::endl;
-                    arquivo << "Transition from " << getNodeID(start) << " to " << getNodeID(targetNode) << std::endl;
-                    arquivo << "Transition char: " << transitionChar << std::endl;
-                    arquivo << "--------------------------------------------------------" << std::endl;
+    //     // Se for um nó final, imprimir isso.
+    //     if (start->final()) {
+    //         arquivo << "Final state: " << getNodeID(start) << std::endl;
+    //     }
+    //     // else{
+    //         // Itera por todas as transições do nó de início.
+    //         for (const auto &transition : start->transitions) {
+    //             char transitionChar = transition.first;
+    //             // if(transitionChar != '-'){
+    //                 Node* targetNode = transition.second;
+    //                 // Imprime a transição atual.
+    //                 arquivo << "--------------------------------------------------------" << std::endl;
+    //                 arquivo << "Transition from " << getNodeID(start) << " to " << getNodeID(targetNode) << std::endl;
+    //                 arquivo << "Transition char: " << transitionChar << std::endl;
+    //                 arquivo << "--------------------------------------------------------" << std::endl;
 
-                    // Chama recursivamente para imprimir a partir do nó de destino.
-                    print_transducer(targetNode, fileName, output);  
-                // }
-            }
-        // }
+    //                 // Chama recursivamente para imprimir a partir do nó de destino.
+    //                 print_transducer(targetNode, fileName, output);  
+    //             // }
+    //         }
+    //     // }
 
-        arquivo.close();
-    }
+    //     arquivo.close();
+    // }
    
    void generateDotFile(Node* start, const std::string& filename) {
         std::ofstream out(filename, std::ios::app);  // Abrir o arquivo apenas uma vez
@@ -434,7 +431,7 @@ int main()
     std::string PreviousWord, CurrentWord, tempString;
     Node* initialState;
 
-    std::string inputFileName = "./simpleInput/10words.txt";
+    std::string inputFileName = "./simpleInput/10wordsLinux.txt";
 
     std::pair<std::vector<std::string>, size_t> result = getInput(inputFileName);
     std::vector<std::string> words = result.first;
@@ -511,13 +508,24 @@ int main()
     }
     std::cout << "its over" << std::endl;
 
-    writeSortedWordsToFile(words, inputFileName);
+    Node* nodeTeste = new Node();
+    std::cout << "Tamanho de uma instância de Node: " << sizeof(nodeTeste) << " bytes." << std::endl;
+    std::cout << "Quantidade de Node: " << quantidadeDeNodes << std::endl;
+    std::cout << "Espaço total ocupado pelos nodes " << quantidadeDeNodes*sizeof(nodeTeste) << " bytes.\n" << std::endl;
+    
 
+    std::pair<char, Node*> transicao = std::make_pair('a', nodeTeste);
+    std::cout << "Tamanho de uma transição: " << sizeof(transicao) << " bytes." << std::endl;
+    std::cout << "Quantidade de Transições: " << quantidadeDeTransicoes << std::endl;
+    std::cout << "Espaço total ocupado pelas transições " << quantidadeDeTransicoes * sizeof(Node) << " bytes.\n" << std::endl;
+
+    std::cout << "Espaço total ocupado " << quantidadeDeTransicoes * sizeof(Node) + quantidadeDeNodes*sizeof(nodeTeste) << " bytes." << std::endl;
+
+    // writeSortedWordsToFile(words, inputFileName);
+
+    // os segundos a mais que ficam rodando é por causa do comando de montar a imagem, caso as linhas abaixo estejam comentadas
     // cleanOutputFile("graph.dot");
     // MinimalTransducerStatesDitionary.generateDotFile(initialState, "graph.dot");
-    // std::ofstream out("graph.dot", std::ios::app);
-    // out << "}\n";
-    // rodar: dot -Tpng graph.dot -o graph.png
 
     return 0;
 }
