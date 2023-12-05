@@ -1,0 +1,10 @@
+Final state: 6 - A
+Final state: 2 - AA
+Final state: 0 - AA's
+Final state: 0 - AAA
+Final state: 5 - AB
+Final state: 3 - ABC
+Final state: 0 - ABC's
+Final state: 0 - ABCs
+Final state: 4 - ABM
+Final state: 0 - ABM's

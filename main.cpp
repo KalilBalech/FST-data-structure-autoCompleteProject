@@ -15,13 +15,13 @@ public:
     // O mapa agora associa um par de char e int (peso da transição) a um Node*.
     std::map<char, std::pair<Node *, std::string>> transitions; // Agora usando std::map - esse char é o transition outuput, ou só "output"
     bool is_final;
-    std::set<std::string> stateOutput; // isso aqui é o node output, ou "state output" - somente diferente de '' se isfinal for true
+    // std::set<std::string> stateOutput; // isso aqui é o node output, ou "state output" - somente diferente de '' se isfinal for true
 
     Node(bool isFinal = false, std::set<std::string> stateOutput = {})
     {
         // this->id = id;            // Correto: atribui o parâmetro id ao membro da classe id.
         this->is_final = isFinal; // Correto: atribui o parâmetro isFinal ao membro da classe is_final.
-        this->stateOutput = stateOutput;
+        // this->stateOutput = stateOutput;
     }
 
     // Define um novo valor para isFinal do Node
@@ -57,13 +57,13 @@ public:
         this->transitions[inputChar] = std::make_pair(targetState, transitionOutput);
     }
 
-    std::set<std::string> state_output() const{
-        return this->stateOutput;
-    }
+    // std::set<std::string> state_output() const{
+    //     return this->stateOutput;
+    // }
 
-    void set_state_output(std::set<std::string> stateOutput){
-        this->stateOutput = stateOutput;
-    }
+    // void set_state_output(std::set<std::string> stateOutput){
+    //     this->stateOutput = stateOutput;
+    // }
 
     //  return the output string for a transitionChar
     std::string output(char transitionChar){
@@ -75,7 +75,7 @@ public:
     }
 
     Node* copy_state(){
-        Node* newNode = new Node(this->is_final, this->stateOutput);
+        Node* newNode = new Node(this->is_final/*, this->stateOutput*/);
         newNode->transitions = this->transitions;
         return newNode;
     }
@@ -85,11 +85,11 @@ public:
     {
         this->transitions.clear();
         this->set_final(false);
-        this->stateOutput = {};
+        // this->stateOutput = {};
     }
 
     bool compare_states(Node* anotherState){
-        if(this->final() != anotherState->final() || this->state_output() != anotherState->state_output() || this->transitions != anotherState->transitions){
+        if(this->final() != anotherState->final() /*|| this->state_output() != anotherState->state_output() */|| this->transitions != anotherState->transitions){
             return false;
         }
         return true;
@@ -108,7 +108,8 @@ struct StateHasher {
         std::hash<Node*> node_hasher;
         for (const auto& transition : node->transitions) {
             if(transition.first != '-'){
-                hash_combine(seed, char_hasher(transition.first)); // Usa o caractere da transição
+                hash_combine(seed, char_hasher(transition.first)); // Usa o caractere da transi ção
+                hash_combine(seed, bool_hasher(transition.second.first->final()));
             }
             // hash_combine(seed, node_hasher(transition.second.first)); // Usa o ponteiro do próximo Node
             // Para a string de saída, você pode precisar de uma função de hash para strings
@@ -130,39 +131,6 @@ private:
         seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 };
-
-// struct StateEqual {
-//     bool operator()(const Node* lhs, const Node* rhs) const {
-//         // Verifique se ambos os ponteiros são não-nulos
-//         if (lhs == nullptr || rhs == nullptr) {
-//             return lhs == rhs; // Ambos nulos são considerados iguais, caso contrário, diferentes
-//         }
-//         // Compare o estado final, as saídas de estado e as transições de ambos os nós
-//         // if(lhs->final() != rhs->final() || lhs->state_output() != rhs->state_output() || lhs->transitions != rhs->transitions){
-//         //     return false;
-//         // }
-//         // return true;
-//         if(lhs->final() && rhs->final()){ // se um é final, os dois são finais, por causa do hash... só comparamos ponteiros que possuem o mesmo hash
-//             if(lhs->transitions.size() == 1 && rhs->transitions.size() == 1){
-//                 if(lhs->transitions.count('-') > 0 && rhs->transitions.count('-') > 0){
-//                     return true;
-//                 }
-//             }
-//         }
-//         else{
-//             Node* lhsNextNode;
-//             Node* rhsNextNode;
-//             for (const auto& transition : lhs->transitions) {
-//                 lhsNextNode = transition.second.first;
-//                 rhsNextNode = rhs->transitions.find(transition.first).first;
-//                 if(!StateEqual.operator(lhsNextNode, rhsNextNode)){
-//                     return false;
-//                 }
-//             }
-//             return true;
-//         }
-//     }
-// };
 
 struct StateEqual {
     bool operator()(const Node* lhs, const Node* rhs) const {
@@ -194,45 +162,6 @@ struct StateEqual {
     }
 };
 
-// struct StateEqual {
-//     bool operator()(const Node* lhs, const Node* rhs) const {
-//         // Verifique se ambos os ponteiros são não-nulos
-//         if (lhs == nullptr || rhs == nullptr) {
-//             return lhs == rhs; // Ambos nulos são considerados iguais, caso contrário, diferentes
-//         }
-
-//         // Se ambos os nós são finais
-//         if (lhs->final() && rhs->final()) {
-//             // E ambos têm apenas uma transição com o char '-'
-//             if (lhs->transitions.size() == 1 && rhs->transitions.size() == 1) {
-//                 auto lhsTransition = lhs->transitions.find('-');
-//                 auto rhsTransition = rhs->transitions.find('-');
-//                 // Verifique se ambos têm a transição nula '-'
-//                 if (lhsTransition != lhs->transitions.end() && rhsTransition != rhs->transitions.end()) {
-//                     // E se as transições nulas levam ao mesmo estado (ou equivalente)
-//                     return lhsTransition->second.first == rhsTransition->second.first;
-//                 }
-//             }
-//             return false;
-//         }
-
-//         // Se não são finais, todas as transições devem ser equivalentes
-//         for (const auto& lhsTransition : lhs->transitions) {
-//             auto rhsTransition = rhs->transitions.find(lhsTransition.first);
-//             if (rhsTransition == rhs->transitions.end()) {
-//                 // Se um caractere em lhs não existe em rhs, não são equivalentes
-//                 return false;
-//             } else {
-//                 // Se os nós para um caractere específico não são equivalentes, então os nós não são equivalentes
-//                 if (!(*this)(lhsTransition.second.first, rhsTransition->second.first)) {
-//                     return false;
-//                 }
-//             }
-//         }
-//         return true;
-//     }
-// };
-
 class FST
 {
 private:
@@ -259,7 +188,7 @@ public:
             // O ponteiro para Node está presente em 'states', então retorne-o
             return it->first;
         }
-        std::cout << "A member disse que esse ponteiro par nó não pertence ao dictionary" << std::endl;
+        // std::cout << "A member disse que esse ponteiro par nó não pertence ao dictionary" << std::endl;
         // O ponteiro para Node não foi encontrado, retorna nullptr
         return nullptr;
     }
@@ -268,15 +197,7 @@ public:
     // Adiciona um novo nó ao FST, mas ainda não conecta ele com outros nós
     void insert(Node* newNode)
     {
-        // if(start_state == nullptr){
-        //     start_state = newNode;
-        //     // Corrigindo a inserção para usar std::pair
-        //     this->states.insert({start_state, states.size()});
-        // }
-        // else{
-            // Corrigindo a inserção para usar std::pair
-            this->states.insert({newNode, states.size()});
-        // }
+        this->states.insert({newNode, states.size()});
     }
 
     int getNodeID(Node* &node){
@@ -379,8 +300,8 @@ public:
 
 };
 
-const char FIRST_CHAR = 'a';
-const char LAST_CHAR = 'z';
+// const char FIRST_CHAR = 'a';
+// const char LAST_CHAR = 'z';
 FST MinimalTransducerStatesDitionary;
 int MAX_WORD_SIZE;
 
@@ -390,7 +311,7 @@ Node* findMinimized(Node*& s){
     Node* r = MinimalTransducerStatesDitionary.member(s);
 
     if(r == nullptr){
-        std::cout << "Tal node não é membro de MinimalTransducerStatesDitionary" << std::endl;
+        // std::cout << "Tal node não é membro de MinimalTransducerStatesDitionary" << std::endl;
         
         // Copia o estado do nó s e insere a cópia no dicionário.
         r = s->copy_state();
@@ -428,18 +349,6 @@ std::pair<std::vector<std::string>, size_t> getInput(std::string filename) {
     return std::make_pair(words, maxLength); // Correção aqui
 }
 
-std::string eraseSubString(std::string stringReference, std::string subString){
-    std::string result = stringReference;
-    // Encontra a posição inicial de subString.
-    size_t start_pos = result.find(subString);
-    // Se subString for encontrada, apaga-a.
-    if (start_pos != std::string::npos) {
-        result.erase(start_pos, subString.length());
-    }
-    // Se subString não for encontrada, retorna a string original.
-    return result;
-}
-
 void cleanOutputFile(std::string fileName){
     std::ofstream file(fileName, std::ios::out);
 
@@ -460,17 +369,13 @@ int main()
     std::set<std::string> tempSet;
     Node* initialState;
 
-    std::string inputFileName = "./simpleInput/10words.txt";
+    std::string inputFileName = "./simpleInput/american-english.txt";
 
     std::pair<std::vector<std::string>, size_t> result = getInput(inputFileName);
     std::vector<std::string> words = result.first;
     MAX_WORD_SIZE = result.second;
     std::vector<Node*> TempStates(MAX_WORD_SIZE+1);
-    // std::cout << "MAX_WORD_SIZE: " << MAX_WORD_SIZE << std::endl;
-
-    // for(i=0; i<20; i++){
-    //     std::cout << "words[" << i << "]: " << words[i] << std::endl;
-    // } 
+    std::cout << "MAX_WORD_SIZE: " << MAX_WORD_SIZE << std::endl;
 
     // inicial o vetor tempStates
     for(i = 0; i<=MAX_WORD_SIZE; i++){
@@ -482,16 +387,9 @@ int main()
     currentOutput = "";
     TempStates[0]->clear_state();
 
-    std::cout << "MAX_WORD_SIZE: " << MAX_WORD_SIZE << std::endl;
-
-    for(i = 0; i<words.size(); i++){
-        std::cout << " words[" << i << "]: " << words[i] << std::endl;
-    }
-
-    std::cout << "Que comecem os jogos" << std::endl;
-
     // esse for é equivalente ao while do pseudocodigo
     for(i=0; i<words.size(); i++){
+        std::cout << "Estamos na palavra " << i << std::endl;
         CurrentWord = words[i];
         j = 0;
         // pega o tamanho do prefixo em comum entre a currentWord e a PreviousWord
@@ -499,12 +397,12 @@ int main()
             j++;
         }
         prefixLengthPlusOne = j; // indice do primeiro char que nao é igual em currentWord e em previousWord
-        // we minimize the states from the sufix of the previous word - transcreve os states de tempStates para o dictionary, em novos states em dictionary, de forma que o initial state ainda continue em tempStates, mas o resto da cadeia esteja em dictionary
+        // transcreve os states de tempStates para o dictionary, em novos states em dictionary, de forma que o initial state ainda continue em tempStates, mas o resto da cadeia esteja em dictionary
         for(j = PreviousWord.size()-1; j>=prefixLengthPlusOne; j--){
-            std::cout << "Entrou em um for que não era pra entrar";
+            // std::cout << "Entrou em um for que não era pra entrar";
             TempStates[j]->set_transition(PreviousWord[j], findMinimized(TempStates[j+1]));
         }
-        // This loop initializes the tail states for the current word - reseta os states de tempStates, exceto o initialState, e cria as transições entre eles para formar o automato da currentWord em tempStates
+        // reseta os states de tempStates, exceto o initialState, e cria as transições entre eles para formar o automato da currentWord em tempStates
         for(j=prefixLengthPlusOne; j<=CurrentWord.size()-1; j++){
             TempStates[j+1]->clear_state();
             // 
@@ -515,64 +413,20 @@ int main()
             TempStates[CurrentWord.size()]->set_final(true);
             TempStates[CurrentWord.size()]->set_output('-', ""); // Espaço vazio como output se necessário.
         }
-        // só entra se tiver prefixo em comum
-        // for(k=0; k <= prefixLengthPlusOne-1; k++){
-        //     // definir commonPrefix como o prefixo comum entre current e previous
-        //     // definir wordSuffix como o resto da current
-        //     CommonPrefix = TempStates[k]->output(CurrentWord[k]) + currentOutput;
-        //     WordSuffix = eraseSubString(CommonPrefix, TempStates[k]->output(CurrentWord[k]));
-        //     TempStates[k]->set_output(CurrentWord[k], CommonPrefix);
-        //     for(c = FIRST_CHAR; c <= LAST_CHAR; c++){
-        //         if(TempStates[k+1]->transition(c) != nullptr){
-        //             TempStates[k+1]->set_output(c, WordSuffix + TempStates[k+1]->output(c));
-        //         }
-        //     }
-        //     if(TempStates[k+1]->final()){
-        //         tempSet.clear();
-        //         for (const auto& tempString : TempStates[k+1]->state_output()) {
-        //             tempSet.insert(WordSuffix + tempString);
-        //         }
-        //         TempStates[k+1]->set_state_output(tempSet);
-        //     }
-        //     currentOutput = eraseSubString(CommonPrefix, currentOutput);
-        // }
-        // if(CurrentWord == PreviousWord){
-        //     std::set<std::string> currentStateOutput = TempStates[CurrentWord.size()]->state_output();
-        //     currentStateOutput.insert(currentOutput); 
-        //     TempStates[CurrentWord.size()]->set_state_output(currentStateOutput);
-        // }
-        // else{
-        //     // esse current output está fazendo nada... tá nulo ""... ao input de 2wordsEqualSuffix, na rodada da palavra "bbc" era pra esse currentOutput ser "1", pois "bbc" é a palavra de indice 1 da lista de palavras
-        //     TempStates[prefixLengthPlusOne]->set_output(CurrentWord[prefixLengthPlusOne], currentOutput);
-        // }
         PreviousWord = CurrentWord;
     }
-        // aqui minimizamos os estados da ultima palavra - percorre a currentWord de trás pra frente - AQUI ESTÁ A CHAMADA DE MINIMIZAÇÃO QUE NÃO FUNICONA- DEBUGAR A PARTIR DAQUI
-        // TO DO - VERIFICAR AS ADIÇÕES DOS ESTADOS QUE ESTÃO EM TEMPSTATES PARA O MINIMALTRANSDUCERDICTIONARY
+        // percorre a currentWord de trás pra frente e vai mandando pro minimalTransducerDictionary
     for(i = CurrentWord.size()-1; i>=0; i--){
-        // if(TempStates[i+1]->compare_states(findMinimized(TempStates[i+1]))){
-        //     TempStates[i]->set_transition(PreviousWord[i], TempStates[i+1]);
-        // }
-        // else{
-            TempStates[i]->set_transition(PreviousWord[i], findMinimized(TempStates[i+1]));
-        // }
+        TempStates[i]->set_transition(PreviousWord[i], findMinimized(TempStates[i+1]));
     }
-
-    // if(TempStates[0]->compare_states(findMinimized(TempStates[0]))){
-    //     initialState = TempStates[0];
-    // }
-    // else{
         initialState = findMinimized(TempStates[0]);
-    // }
 
     std::cout << "Terminou" << std::endl;
-
-    // TO DO: TESTAR COM MAIS DE UMA PALAVRA: tipo "a" e "b" ou "aa" e "ab"
 
     cleanOutputFile("printFST.txt");
     MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
 
-    std::string inputText = "cide";
+    std::string inputText = "";
 
     Node* startSearchNode = MinimalTransducerStatesDitionary.get_start_search_node(initialState, inputText);
 
