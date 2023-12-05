@@ -1,32 +1,27 @@
 --------------------------------------------------------
-Transition from 9 to 2
-Transition char: m
+Transition from 10 to 5
+Transition char: a
+Transition output: 
+--------------------------------------------------------
+--------------------------------------------------------
+Transition from 5 to 2
+Transition char: c
 Transition output: 
 --------------------------------------------------------
 --------------------------------------------------------
 Transition from 2 to 1
-Transition char: o
+Transition char: r
 Transition output: 
 --------------------------------------------------------
 --------------------------------------------------------
 Transition from 1 to 0
-Transition char: n
+Transition char: e
 Transition output: 
 --------------------------------------------------------
 Final state: 0
 --------------------------------------------------------
-Transition from 9 to 8
-Transition char: t
-Transition output: 
---------------------------------------------------------
---------------------------------------------------------
-Transition from 8 to 5
-Transition char: h
-Transition output: 
---------------------------------------------------------
---------------------------------------------------------
 Transition from 5 to 4
-Transition char: u
+Transition char: g
 Transition output: 
 --------------------------------------------------------
 --------------------------------------------------------
@@ -36,34 +31,34 @@ Transition output:
 --------------------------------------------------------
 --------------------------------------------------------
 Transition from 3 to 0
-Transition char: s
+Transition char: o
 Transition output: 
 --------------------------------------------------------
 Final state: 0
 --------------------------------------------------------
-Transition from 8 to 6
-Transition char: u
+Transition from 10 to 9
+Transition char: b
 Transition output: 
 --------------------------------------------------------
 --------------------------------------------------------
-Transition from 6 to 3
-Transition char: e
+Transition from 9 to 8
+Transition char: i
 Transition output: 
 --------------------------------------------------------
---------------------------------------------------------
-Transition from 3 to 0
-Transition char: s
-Transition output: 
---------------------------------------------------------
-Final state: 0
 --------------------------------------------------------
 Transition from 8 to 7
-Transition char: y
+Transition char: c
 Transition output: 
 --------------------------------------------------------
 --------------------------------------------------------
-Transition from 7 to 0
-Transition char: e
+Transition from 7 to 6
+Transition char: a
+Transition output: 
+--------------------------------------------------------
+Final state: 6
+--------------------------------------------------------
+Transition from 6 to 0
+Transition char: o
 Transition output: 
 --------------------------------------------------------
 Final state: 0

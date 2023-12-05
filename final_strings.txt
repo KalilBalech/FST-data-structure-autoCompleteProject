@@ -1,4 +1,4 @@
-Final state: 0 - mon
-Final state: 0 - thurs
-Final state: 0 - tues
-Final state: 0 - tye
+Final state: 0 - acre
+Final state: 0 - agro
+Final state: 6 - bica
+Final state: 0 - bicao

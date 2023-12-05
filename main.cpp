@@ -11,7 +11,7 @@
 #include <unordered_set>
 #include <tuple>
 #include <algorithm>
-#include <unicode/coll.h>  // ICU Collation
+#include <chrono>
 
 
 class Node
@@ -104,10 +104,10 @@ struct StateHasher {
         std::hash<char> char_hasher;
         std::hash<Node*> node_hasher;
         for (const auto& transition : node->transitions) {
-            if(transition.first != '-'){
+            // if(transition.first != '-'){
                 hash_combine(seed, char_hasher(transition.first)); // Usa o caractere da transi ção
                 hash_combine(seed, bool_hasher(transition.second.first->final()));
-            }
+            // }
             // hash_combine(seed, node_hasher(transition.second.first)); // Usa o ponteiro do próximo Node
             // Para a string de saída, você pode precisar de uma função de hash para strings
             // std::hash<std::string> string_hasher;
@@ -142,7 +142,7 @@ struct StateEqual {
         }
 
         for (const auto& lhsTransition : lhs->transitions) {
-            if(lhsTransition.first != '-'){
+            // if(lhsTransition.first != '-'){
                 auto rhsTransition = rhs->transitions.find(lhsTransition.first);
                 if (rhsTransition == rhs->transitions.end()) {
                     // Se um caractere em lhs não existe em rhs, não são equivalentes
@@ -153,7 +153,7 @@ struct StateEqual {
                         return false;
                     }
                 }
-            }
+            // }
         }
         return true;
     }
@@ -226,7 +226,7 @@ public:
             // Itera por todas as transições do nó de início.
             for (const auto &transition : start->transitions) {
                 char transitionChar = transition.first;
-                if(transitionChar != '-'){
+                // if(transitionChar != '-'){
                     Node* targetNode = transition.second.first;
                     std::string transitionOutput = transition.second.second;
                     // Imprime a transição atual.
@@ -238,7 +238,7 @@ public:
 
                     // Chama recursivamente para imprimir a partir do nó de destino.
                     print_transducer(targetNode, fileName, output + transitionOutput);  
-                }
+                // }
             }
         // }
 
@@ -273,7 +273,7 @@ public:
             targetNode = transition.second.first;
             std::tuple<Node*, char, Node*> myTransition = std::make_tuple(start, transitionChar, targetNode);
 
-            if (transitionChar != '-' && addedTransitions.find(myTransition) == addedTransitions.end()) {
+            if (/*transitionChar != '-' && */addedTransitions.find(myTransition) == addedTransitions.end()) {
                 addedTransitions.insert(myTransition);
                 out << "    " << getNodeID(start) << " -> " << getNodeID(targetNode) << " [label=\"" << transitionChar << "\"];\n";
                 queue.push(myTransition);
@@ -295,7 +295,7 @@ public:
                 targetNode = trans.second.first;
                 std::tuple<Node*, char, Node*> nextTransition = std::make_tuple(currentNode, transitionChar, targetNode);
 
-                if (transitionChar != '-' && addedTransitions.find(nextTransition) == addedTransitions.end()) {
+                if (/*transitionChar != '-' && */addedTransitions.find(nextTransition) == addedTransitions.end()) {
                     addedTransitions.insert(nextTransition);
                     out << "    " << getNodeID(currentNode) << " -> " << getNodeID(targetNode) << " [label=\"" << transitionChar << "\"];\n";
                     queue.push(nextTransition);
@@ -328,11 +328,11 @@ public:
             // Itera por todas as transições do nó de início.
             for (const auto &transition : start->transitions) {
                 char transitionChar = transition.first;
-                if(transitionChar != '-'){
+                // if(transitionChar != '-'){
                     Node* targetNode = transition.second.first;
                     // Chama recursivamente para imprimir a partir do nó de destino.
                     get_final_strings(targetNode, fileName, output + transitionChar);  
-                }
+                // }
             }
         // }
 
@@ -418,18 +418,13 @@ void writeSortedWordsToFile(const std::vector<std::string>& words, const std::st
     outputFile.close();
 }
 
-// void sortUnicodeStrings(std::vector<std::string>& words) {
-//     UErrorCode status = U_ZERO_ERROR;
-//     icu::Collator* collator = icu::Collator::createInstance(status);
-
-//     std::sort(words.begin(), words.end(), [collator](const std::string& a, const std::string& b) {
-//         icu::UnicodeString ua = icu::UnicodeString::fromUTF8(a);
-//         icu::UnicodeString ub = icu::UnicodeString::fromUTF8(b);
-//         return collator->compare(ua, ub) == icu::Collator::LESS;
-//     });
-
-//     delete collator;
-// }
+bool utf8Compare(const std::string& a, const std::string& b) {
+    // Aqui você pode implementar uma função de comparação que entende a codificação UTF-8.
+    // Uma maneira simples seria usar uma biblioteca de terceiros que entenda UTF-8.
+    // Por exemplo, você poderia usar a biblioteca ICU como mostrado anteriormente.
+    // Esta é apenas uma implementação simplificada e pode não funcionar para todos os casos:
+    return a < b;
+}
 
 void cleanOutputFile(std::string fileName){
     std::ofstream file(fileName, std::ios::out);
@@ -456,15 +451,6 @@ int main()
     std::vector<std::string> words = result.first;
     MAX_WORD_SIZE = result.second;
     std::sort(words.begin(), words.end());
-    // writeSortedWordsToFile(words, inputFileName);
-    // sortUnicodeStrings(words);
-    // for(i=0; i<words.size(); i++){
-    //     std::cout << words[i] <<std::endl;
-    // }
-    // std::string palavra = "Ångström's";
-    // for(char c: palavra){
-    //     std::cout << c << std::endl;
-    // }
     std::vector<Node*> TempStates(MAX_WORD_SIZE+1);
     std::cout << "MAX_WORD_SIZE: " << MAX_WORD_SIZE << std::endl;
 
@@ -475,6 +461,8 @@ int main()
     
     PreviousWord = "";
     TempStates[0]->clear_state();
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     // esse for é equivalente ao while do pseudocodigo
     for(i=0; i<words.size(); i++){
@@ -500,7 +488,7 @@ int main()
         // define o ultimo nó do automato da currentWord, que está em TempStates, como final
         if(CurrentWord != PreviousWord){
             TempStates[CurrentWord.size()]->set_final(true);
-            TempStates[CurrentWord.size()]->set_output('-', ""); // Espaço vazio como output se necessário.
+            // TempStates[CurrentWord.size()]->set_output('-', ""); // Espaço vazio como output se necessário.
         }
         PreviousWord = CurrentWord;
     }
@@ -511,6 +499,11 @@ int main()
         initialState = findMinimized(TempStates[0]);
 
     std::cout << "Terminou" << std::endl;
+
+    // Parar a contagem de tempo
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "Time taken by function: " << duration.count() << " milliseconds" << std::endl;
 
     cleanOutputFile("printFST.txt");
     MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");

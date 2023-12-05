@@ -1,18 +1,19 @@
 digraph G {
     rankdir=LR;
-    9 -> 2 [label="m"];
-    9 -> 8 [label="t"];
-    2 -> 1 [label="o"];
-    8 -> 5 [label="h"];
-    8 -> 6 [label="u"];
-    8 -> 7 [label="y"];
-    1 -> 0 [label="n"];
-    5 -> 4 [label="u"];
-    6 -> 3 [label="e"];
-    7 -> 0 [label="e"];
-    0 [penwidth=3];
+    10 -> 5 [label="a"];
+    10 -> 9 [label="b"];
+    5 -> 2 [label="c"];
+    5 -> 4 [label="g"];
+    9 -> 8 [label="i"];
+    2 -> 1 [label="r"];
     4 -> 3 [label="r"];
-    3 -> 0 [label="s"];
+    8 -> 7 [label="c"];
+    1 -> 0 [label="e"];
+    3 -> 0 [label="o"];
+    7 -> 6 [label="a"];
     0 [penwidth=3];
+    0 [penwidth=3];
+    6 [penwidth=3];
+    6 -> 0 [label="o"];
     0 [penwidth=3];
 }
