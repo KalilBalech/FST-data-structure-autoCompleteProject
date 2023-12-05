@@ -303,41 +303,29 @@ public:
         out.close();
     }
 
-    std::vector<std::string> get_final_strings(Node* start, std::string fileName, std::string output = "", std::vector<std::string>& recomendations= {}) {
-        if(recomendations.size() == 10){
-            return recomendations;
-        }
-
-        std::ofstream arquivo(fileName, std::ios::app);
-        if (!arquivo.is_open()) {
-            std::cerr << "Não foi possível abrir o arquivo." << std::endl;
-            return;
-        }
-
+    void get_final_strings(Node* start, std::vector<std::string>& recomendations, std::string output = "") {
         if (start == nullptr) {
             // Se o nó de início não for válido, encerre a função.
-            arquivo.close();
             return;
         }
 
-        // Se for um nó final, imprimir isso.
+        if (recomendations.size() == 10) {
+            // Se já coletou 10 recomendações, pare a execução.
+            return;
+        }
+
+        // Se for um nó final, adicione a palavra ao vetor de recomendações.
         if (start->final()) {
             recomendations.push_back(output);
-            arquivo << "Final state: " << getNodeID(start) << " - " << output << std::endl;
         }
-        // else{
-            // Itera por todas as transições do nó de início.
-            for (const auto &transition : start->transitions) {
-                char transitionChar = transition.first;
-                // if(transitionChar != '-'){
-                    Node* targetNode = transition.second;
-                    // Chama recursivamente para imprimir a partir do nó de destino.
-                    return get_final_strings(targetNode, fileName, output + transitionChar, recomendations);  
-                // }
-            }
-        // }
 
-        arquivo.close();
+        // Itera por todas as transições do nó de início.
+        for (const auto &transition : start->transitions) {
+            char transitionChar = transition.first;
+            Node* targetNode = transition.second;
+            get_final_strings(targetNode, recomendations, output + transitionChar);
+        }
+        return;
     }
 
     Node* get_start_search_node(Node* start, std::string search_string) {
@@ -446,7 +434,7 @@ int main()
     std::string PreviousWord, CurrentWord, tempString;
     Node* initialState;
 
-    std::string inputFileName = "./simpleInput/american-english-noaccent.txt";
+    std::string inputFileName = "./simpleInput/10words.txt";
 
     std::pair<std::vector<std::string>, size_t> result = getInput(inputFileName);
     std::vector<std::string> words = result.first;
@@ -509,18 +497,29 @@ int main()
     // cleanOutputFile("printFST.txt");
     // MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
 
-    std::string inputText = "";
+    std::string inputText = "C";
 
     Node* startSearchNode = MinimalTransducerStatesDitionary.get_start_search_node(initialState, inputText);
 
-    cleanOutputFile("final_strings.txt");
-    MinimalTransducerStatesDitionary.get_final_strings(startSearchNode, "final_strings.txt", inputText);
+    std::vector<std::string> recommendations;
+    MinimalTransducerStatesDitionary.get_final_strings(startSearchNode, recommendations, inputText);
+
+    std::cout << "Número de recomendações: " << recommendations.size() << std::endl;
+
+    for(std::string word: recommendations){
+        std::cout << word << std::endl;
+    }
+    std::cout << "its over" << std::endl;
+
+    writeSortedWordsToFile(words, inputFileName);
 
     // cleanOutputFile("graph.dot");
     // MinimalTransducerStatesDitionary.generateDotFile(initialState, "graph.dot");
     // std::ofstream out("graph.dot", std::ios::app);
     // out << "}\n";
     // rodar: dot -Tpng graph.dot -o graph.png
+
+    return 0;
 }
 
 // o map considera os char em ordem na tabela ascii, portanto as aspas simples vem primeiro
