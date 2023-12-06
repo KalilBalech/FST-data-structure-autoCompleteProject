@@ -201,44 +201,6 @@ public:
         }
         return -1;
     }
-
-    // void print_transducer(Node* start, std::string fileName, std::string output = "") {
-    //     std::ofstream arquivo(fileName, std::ios::app);
-    //     if (!arquivo.is_open()) {
-    //         std::cerr << "Não foi possível abrir o arquivo." << std::endl;
-    //         return;
-    //     }
-
-    //     if (start == nullptr) {
-    //         // Se o nó de início não for válido, encerre a função.
-    //         arquivo.close();
-    //         return;
-    //     }
-
-    //     // Se for um nó final, imprimir isso.
-    //     if (start->final()) {
-    //         arquivo << "Final state: " << getNodeID(start) << std::endl;
-    //     }
-    //     // else{
-    //         // Itera por todas as transições do nó de início.
-    //         for (const auto &transition : start->transitions) {
-    //             char transitionChar = transition.first;
-    //             // if(transitionChar != '-'){
-    //                 Node* targetNode = transition.second;
-    //                 // Imprime a transição atual.
-    //                 arquivo << "--------------------------------------------------------" << std::endl;
-    //                 arquivo << "Transition from " << getNodeID(start) << " to " << getNodeID(targetNode) << std::endl;
-    //                 arquivo << "Transition char: " << transitionChar << std::endl;
-    //                 arquivo << "--------------------------------------------------------" << std::endl;
-
-    //                 // Chama recursivamente para imprimir a partir do nó de destino.
-    //                 print_transducer(targetNode, fileName, output);  
-    //             // }
-    //         }
-    //     // }
-
-    //     arquivo.close();
-    // }
    
    void generateDotFile(Node* start, const std::string& filename) {
         std::ofstream out(filename, std::ios::app);  // Abrir o arquivo apenas uma vez
@@ -492,43 +454,13 @@ int main()
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     // std::cout << "Tempo tomado: " << duration.count() << " milisegundos" << std::endl;
 
-    // cleanOutputFile("printFST.txt");
-    // MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
-
-    // Node* nodeTeste;
-    // std::cout << "Tamanho de uma instância de Node: " << sizeof(nodeTeste) << " bytes." << std::endl;
-    // std::cout << "Quantidade de Node: " << quantidadeDeNodes << std::endl;
-    // std::cout << "Espaço total ocupado pelos nodes " << quantidadeDeNodes*sizeof(nodeTeste) << " bytes.\n" << std::endl;
-    
-
-    // std::pair<char, Node*> transicao;
-    // std::cout << "Tamanho de uma transição: " << sizeof(transicao) << " bytes." << std::endl;
-    // std::cout << "Quantidade de Transições: " << quantidadeDeTransicoes << std::endl;
-    // std::cout << "Espaço total ocupado pelas transições " << quantidadeDeTransicoes * sizeof(transicao) << " bytes.\n" << std::endl;
-
-    // std::cout << "Espaço total ocupado " << quantidadeDeTransicoes * sizeof(transicao) + quantidadeDeNodes*sizeof(nodeTeste) << " bytes." << std::endl;
-
     // os segundos a mais que ficam rodando é por causa do comando de montar a imagem, caso as linhas abaixo estejam comentadas
-    // cleanOutputFile("graph.dot");
-    // MinimalTransducerStatesDitionary.generateDotFile(initialState, "graph.dot");
+    cleanOutputFile("graph.dot");
+    MinimalTransducerStatesDitionary.generateDotFile(initialState, "graph.dot");
 
     // AO INICIALIZAR O NCURSES, QUERO QUE RODE ATÉ AQUI
     // ********************************************************************************************************************************
     
-    // quero que a cada onChange do input da tela do ncurses, as linhas de código abaixo rodem
-    // a cada mudança do input, quero que esse input seja colocado em inputText, e rode as linhas abaixo
-    // inputText = "c";
-
-    // Node* startSearchNode = MinimalTransducerStatesDitionary.get_start_search_node(initialState, inputText);
-
-    // std::vector<std::string> recommendations;
-    // MinimalTransducerStatesDitionary.get_final_strings(startSearchNode, recommendations, inputText);
-
-    // std::cout << "Número de recomendações: " << recommendations.size() << std::endl;
-
-    // for(std::string word: recommendations){
-    //     std::cout << word << std::endl;
-    // }
     int recomendationLine = 9;
     std::string inputText;
     std::vector<std::string> recommendations;
