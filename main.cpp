@@ -431,7 +431,7 @@ int main()
     std::string PreviousWord, CurrentWord, tempString;
     Node* initialState;
 
-    std::string inputFileName = "./simpleInput/10wordsLinux.txt";
+    std::string inputFileName = "./simpleInput/10wordsWithAccent.txt";
 
     std::pair<std::vector<std::string>, size_t> result = getInput(inputFileName);
     std::vector<std::string> words = result.first;
@@ -494,7 +494,7 @@ int main()
     // cleanOutputFile("printFST.txt");
     // MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
 
-    std::string inputText = "C";
+    std::string inputText = "c";
 
     Node* startSearchNode = MinimalTransducerStatesDitionary.get_start_search_node(initialState, inputText);
 
@@ -508,19 +508,18 @@ int main()
     }
     std::cout << "its over" << std::endl;
 
-    Node* nodeTeste = new Node();
+    Node* nodeTeste;
     std::cout << "Tamanho de uma instância de Node: " << sizeof(nodeTeste) << " bytes." << std::endl;
     std::cout << "Quantidade de Node: " << quantidadeDeNodes << std::endl;
     std::cout << "Espaço total ocupado pelos nodes " << quantidadeDeNodes*sizeof(nodeTeste) << " bytes.\n" << std::endl;
     
 
-    std::pair<char, Node*> transicao = std::make_pair('a', nodeTeste);
+    std::pair<char, Node*> transicao;
     std::cout << "Tamanho de uma transição: " << sizeof(transicao) << " bytes." << std::endl;
     std::cout << "Quantidade de Transições: " << quantidadeDeTransicoes << std::endl;
-    std::cout << "Espaço total ocupado pelas transições " << quantidadeDeTransicoes * sizeof(Node) << " bytes.\n" << std::endl;
+    std::cout << "Espaço total ocupado pelas transições " << quantidadeDeTransicoes * sizeof(transicao) << " bytes.\n" << std::endl;
 
-    std::cout << "Espaço total ocupado " << quantidadeDeTransicoes * sizeof(Node) + quantidadeDeNodes*sizeof(nodeTeste) << " bytes." << std::endl;
-
+    std::cout << "Espaço total ocupado " << quantidadeDeTransicoes * sizeof(transicao) + quantidadeDeNodes*sizeof(nodeTeste) << " bytes." << std::endl;
     // writeSortedWordsToFile(words, inputFileName);
 
     // os segundos a mais que ficam rodando é por causa do comando de montar a imagem, caso as linhas abaixo estejam comentadas
