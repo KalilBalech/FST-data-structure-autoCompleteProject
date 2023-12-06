@@ -1,4 +1,3 @@
 #!/bin/bash
-g++ -o myFST main.cpp
-./myFST
+g++ -o main main.cpp -lncurses && ./main
 dot -Tpng graph.dot -o graph.png

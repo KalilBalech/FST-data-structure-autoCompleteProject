@@ -12,6 +12,8 @@
 #include <tuple>
 #include <algorithm>
 #include <chrono>
+#include <ncurses.h>
+
 
 int quantidadeDeNodes = 0;
 int quantidadeDeTransicoes = 0;
@@ -404,14 +406,6 @@ void writeSortedWordsToFile(const std::vector<std::string>& words, const std::st
     outputFile.close();
 }
 
-bool utf8Compare(const std::string& a, const std::string& b) {
-    // Aqui você pode implementar uma função de comparação que entende a codificação UTF-8.
-    // Uma maneira simples seria usar uma biblioteca de terceiros que entenda UTF-8.
-    // Por exemplo, você poderia usar a biblioteca ICU como mostrado anteriormente.
-    // Esta é apenas uma implementação simplificada e pode não funcionar para todos os casos:
-    return a < b;
-}
-
 void cleanOutputFile(std::string fileName){
     std::ofstream file(fileName, std::ios::out);
 
@@ -426,12 +420,20 @@ void cleanOutputFile(std::string fileName){
 
 int main()
 {
+    // Inicialização do ncurses
+    initscr(); // Inicializa a tela do ncurses
+    cbreak(); // Desabilita o buffer de linha, permitindo entrada imediata
+    noecho(); // Desabilita a exibição automática de entrada do teclado
+    keypad(stdscr, TRUE); // Permite a leitura de teclas de função, setas, etc.
+
+    // **********************************************************************************************
+    // AO INICIALIZAR O PROGRAMA NCURSES, COMEÇA A RODAR A PARTIR DAQUI
     int i, j, k, prefixLengthPlusOne;
     char c;
     std::string PreviousWord, CurrentWord, tempString;
     Node* initialState;
 
-    std::string inputFileName = "./simpleInput/10wordsWithAccent.txt";
+    std::string inputFileName = "./simpleInput/american-english-noaccent.txt";
 
     std::pair<std::vector<std::string>, size_t> result = getInput(inputFileName);
     std::vector<std::string> words = result.first;
@@ -482,50 +484,115 @@ int main()
     for(i = CurrentWord.size()-1; i>=0; i--){
         TempStates[i]->set_transition(PreviousWord[i], findMinimized(TempStates[i+1]));
     }
-        initialState = findMinimized(TempStates[0]);
 
-    std::cout << "Terminou" << std::endl;
+    initialState = findMinimized(TempStates[0]);
 
     // Parar a contagem de tempo
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    std::cout << "Time taken by function: " << duration.count() << " milliseconds" << std::endl;
+    // std::cout << "Tempo tomado: " << duration.count() << " milisegundos" << std::endl;
 
     // cleanOutputFile("printFST.txt");
     // MinimalTransducerStatesDitionary.print_transducer(initialState, "printFST.txt");
 
-    std::string inputText = "c";
-
-    Node* startSearchNode = MinimalTransducerStatesDitionary.get_start_search_node(initialState, inputText);
-
-    std::vector<std::string> recommendations;
-    MinimalTransducerStatesDitionary.get_final_strings(startSearchNode, recommendations, inputText);
-
-    std::cout << "Número de recomendações: " << recommendations.size() << std::endl;
-
-    for(std::string word: recommendations){
-        std::cout << word << std::endl;
-    }
-    std::cout << "its over" << std::endl;
-
-    Node* nodeTeste;
-    std::cout << "Tamanho de uma instância de Node: " << sizeof(nodeTeste) << " bytes." << std::endl;
-    std::cout << "Quantidade de Node: " << quantidadeDeNodes << std::endl;
-    std::cout << "Espaço total ocupado pelos nodes " << quantidadeDeNodes*sizeof(nodeTeste) << " bytes.\n" << std::endl;
+    // Node* nodeTeste;
+    // std::cout << "Tamanho de uma instância de Node: " << sizeof(nodeTeste) << " bytes." << std::endl;
+    // std::cout << "Quantidade de Node: " << quantidadeDeNodes << std::endl;
+    // std::cout << "Espaço total ocupado pelos nodes " << quantidadeDeNodes*sizeof(nodeTeste) << " bytes.\n" << std::endl;
     
 
-    std::pair<char, Node*> transicao;
-    std::cout << "Tamanho de uma transição: " << sizeof(transicao) << " bytes." << std::endl;
-    std::cout << "Quantidade de Transições: " << quantidadeDeTransicoes << std::endl;
-    std::cout << "Espaço total ocupado pelas transições " << quantidadeDeTransicoes * sizeof(transicao) << " bytes.\n" << std::endl;
+    // std::pair<char, Node*> transicao;
+    // std::cout << "Tamanho de uma transição: " << sizeof(transicao) << " bytes." << std::endl;
+    // std::cout << "Quantidade de Transições: " << quantidadeDeTransicoes << std::endl;
+    // std::cout << "Espaço total ocupado pelas transições " << quantidadeDeTransicoes * sizeof(transicao) << " bytes.\n" << std::endl;
 
-    std::cout << "Espaço total ocupado " << quantidadeDeTransicoes * sizeof(transicao) + quantidadeDeNodes*sizeof(nodeTeste) << " bytes." << std::endl;
-    // writeSortedWordsToFile(words, inputFileName);
+    // std::cout << "Espaço total ocupado " << quantidadeDeTransicoes * sizeof(transicao) + quantidadeDeNodes*sizeof(nodeTeste) << " bytes." << std::endl;
 
     // os segundos a mais que ficam rodando é por causa do comando de montar a imagem, caso as linhas abaixo estejam comentadas
     // cleanOutputFile("graph.dot");
     // MinimalTransducerStatesDitionary.generateDotFile(initialState, "graph.dot");
 
+    // AO INICIALIZAR O NCURSES, QUERO QUE RODE ATÉ AQUI
+    // ********************************************************************************************************************************
+    
+    // quero que a cada onChange do input da tela do ncurses, as linhas de código abaixo rodem
+    // a cada mudança do input, quero que esse input seja colocado em inputText, e rode as linhas abaixo
+    // inputText = "c";
+
+    // Node* startSearchNode = MinimalTransducerStatesDitionary.get_start_search_node(initialState, inputText);
+
+    // std::vector<std::string> recommendations;
+    // MinimalTransducerStatesDitionary.get_final_strings(startSearchNode, recommendations, inputText);
+
+    // std::cout << "Número de recomendações: " << recommendations.size() << std::endl;
+
+    // for(std::string word: recommendations){
+    //     std::cout << word << std::endl;
+    // }
+    int recomendationLine = 9;
+    std::string inputText;
+    std::vector<std::string> recommendations;
+    char ch; // Para armazenar o caractere lido
+    // Limpa a tela atual
+    clear();
+
+    mvprintw(0,0, "Tempo tomado: %ld milisegundos", duration.count());
+    Node* nodeTeste;
+    mvprintw(1,0,  "Tamanho de uma instância de Node: %ld bytes.", sizeof(nodeTeste));
+    mvprintw(2,0,  "Quantidade de Node: %d", quantidadeDeNodes);
+    mvprintw(3,0,  "Espaço total ocupado pelos nodes %ld bytes.\n", quantidadeDeNodes*sizeof(nodeTeste));
+
+    // std::pair<char, Node*> transicao;
+    // mvprintw(4,0,  "Tamanho de uma transição: %d bytes.", sizeof(transicao));
+    // mvprintw(5,0,  "Quantidade de Transições: %d", quantidadeDeTransicoes);
+    // mvprintw(6,0,  "Espaço total ocupado pelas transições %d bytes.\n", quantidadeDeTransicoes * sizeof(transicao));
+
+    // mvprintw(7,0,  "Espaço total ocupado %d bytes.", quantidadeDeTransicoes * sizeof(transicao) + quantidadeDeNodes*sizeof(nodeTeste));
+    // Imprime a prompt e a entrada atual do usuário
+    mvprintw(8,0 ,"Digite o inicio da palavra: ");
+    refresh();
+
+    // Laço principal do programa
+    do{
+        ch = getchar();
+        recommendations = {};
+        recomendationLine = 9;
+        for (i = 0; i<=10; i++) {
+            mvprintw(9+i, 0, "                                        ");
+            refresh();
+        }
+        if(ch == 127){
+            inputText.pop_back();
+            mvprintw(8, 28, "                                      ");
+        }
+        else{
+            inputText.push_back(ch); // Adiciona o caractere à string
+        }
+        mvprintw(8, 28, "%s", inputText.c_str());
+        recomendationLine++;
+
+        // Atualiza a tela para mostrar as mudanças
+        refresh();
+        if(inputText != ""){
+
+            Node* startSearchNode = MinimalTransducerStatesDitionary.get_start_search_node(initialState, inputText);
+
+            MinimalTransducerStatesDitionary.get_final_strings(startSearchNode, recommendations, inputText);
+            // // Imprime as sugestões
+            for (std::string word : recommendations) {
+                mvprintw(recomendationLine, 0, "%s", word.c_str());
+                recomendationLine++;
+                refresh();
+            }
+
+        }
+
+    } while(ch != 27 && ch != '\n');
+
+    // Finaliza o ncurses
+    endwin();
+
+    // Rode Até aqui, a cada alteração do inputText
     return 0;
 }
 
