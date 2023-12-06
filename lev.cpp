@@ -24,7 +24,7 @@ int levenshteinDistance(const std::string &s1, const std::string &s2) {
 }
 
 int main() {
-    std::ifstream dictionaryFile("linuxDictionary.txt");
+    std::ifstream dictionaryFile("./simpleInput/american-english.txt");
     if (!dictionaryFile) {
         std::cerr << "Error opening dictionary file.\n";
         return 1;
